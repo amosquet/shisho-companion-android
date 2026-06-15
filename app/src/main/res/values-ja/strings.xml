@@ -18,7 +18,6 @@
     <string name="reminder_text">リマインダーのテキスト</string>
     <string name="ok">OK</string>
     <string name="cancel">キャンセル</string>
-    <string name="next">次へ</string>
     <string name="edit_note">メモを編集</string>
     <string name="edit_reading_list_item">読書リストの項目を編集</string>
     <string name="edit_reminder">リマインダーを編集</string>
@@ -36,7 +35,6 @@
     <string name="edit">編集</string>
     <string name="book_cover">本の表紙</string>
     <string name="select_date">日付を選択</string>
-    <string name="select_date_time">日付と時刻を選択</string>
     <string name="delete">削除</string>
     <string name="attachment">添付ファイル</string>
     <string name="sync">同期</string>

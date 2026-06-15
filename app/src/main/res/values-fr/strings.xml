@@ -18,7 +18,6 @@
     <string name="reminder_text">Texte du rappel</string>
     <string name="ok">OK</string>
     <string name="cancel">Annuler</string>
-    <string name="next">Suivant</string>
     <string name="edit_note">Modifier la note</string>
     <string name="edit_reading_list_item">Modifier l\'élément de la liste</string>
     <string name="edit_reminder">Modifier le rappel</string>
@@ -36,7 +35,6 @@
     <string name="edit">Modifier</string>
     <string name="book_cover">Couverture du livre</string>
     <string name="select_date">Sélectionner la date</string>
-    <string name="select_date_time">Sélectionner la date et l\'heure</string>
     <string name="delete">Supprimer</string>
     <string name="attachment">Pièce jointe</string>
     <string name="sync">Synchroniser</string>
