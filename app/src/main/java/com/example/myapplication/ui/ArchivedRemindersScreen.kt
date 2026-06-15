@@ -10,6 +10,10 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,6 +30,7 @@ fun ArchivedRemindersScreen(
     onClearSelection: () -> Unit,
     onDeleteSelected: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val inSelectionMode = selectedReminderIds.isNotEmpty()
     Scaffold(
         topBar = {
@@ -45,7 +50,7 @@ fun ArchivedRemindersScreen(
                 },
                 actions = {
                     if (inSelectionMode) {
-                        IconButton(onClick = onDeleteSelected) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Delete selected reminders")
                         }
                     }
@@ -96,5 +101,28 @@ fun ArchivedRemindersScreen(
                 }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Archived Reminders") },
+            text = { Text("Are you sure you want to delete ${selectedReminderIds.size} selected reminders?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteSelected()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

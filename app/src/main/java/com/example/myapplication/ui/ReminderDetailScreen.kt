@@ -9,6 +9,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.data.ReminderItem
@@ -22,6 +26,8 @@ fun ReminderDetailScreen(
     onDeleteClick: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -35,7 +41,7 @@ fun ReminderDetailScreen(
                     IconButton(onClick = onEditClick) {
                         Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.edit))
                     }
-                    IconButton(onClick = onDeleteClick) {
+                    IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete))
                     }
                 },
@@ -64,5 +70,28 @@ fun ReminderDetailScreen(
             Text(stringResource(R.string.status), style = MaterialTheme.typography.labelSmall)
             Text(if (item.isSent) "Sent" else "Pending", style = MaterialTheme.typography.bodyMedium)
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Reminder") },
+            text = { Text("Are you sure you want to delete this reminder?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteClick()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }

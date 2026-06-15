@@ -36,6 +36,7 @@ fun NotesListScreen(
     onDeleteSelected: () -> Unit,
     onArchiveSelected: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val inSelectionMode = selectedNoteIds.isNotEmpty()
     Scaffold(
         topBar = {
@@ -53,7 +54,7 @@ fun NotesListScreen(
                         IconButton(onClick = onArchiveSelected) {
                             Icon(Icons.Filled.Archive, contentDescription = "Archive selected notes")
                         }
-                        IconButton(onClick = onDeleteSelected) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Delete selected notes")
                         }
                     } else {
@@ -125,6 +126,29 @@ fun NotesListScreen(
             }
         }
     }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Selected Notes") },
+            text = { Text("Are you sure you want to delete ${selectedNoteIds.size} selected notes?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteSelected()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -163,6 +187,14 @@ fun NoteItemCard(item: NoteItem, isSelected: Boolean, onClick: () -> Unit, onLon
                     color = MaterialTheme.colorScheme.secondary,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (item.attachment.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "${item.attachment.size} attachment${if (item.attachment.size == 1) "" else "s"}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
             if (item.updated.isNotEmpty()) {

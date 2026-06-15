@@ -15,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,10 +26,17 @@ fun SettingsScreen(
     onDarkModeToggle: (Boolean) -> Unit,
     use24HourTime: Boolean,
     on24HourTimeToggle: (Boolean) -> Unit,
+    linkedEmail: String,
+    emailLinkUiState: EmailLinkUiState,
+    onRequestEmailLink: (String) -> Unit,
+    onVerifyEmailLink: (String) -> Unit,
+    onUnlinkEmail: () -> Unit,
+    onResetEmailLinkState: () -> Unit,
     onLogout: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showUnlinkDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -75,6 +84,113 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Email",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            )
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    if (linkedEmail.isNotEmpty()) {
+                        Text(
+                            text = linkedEmail,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { showUnlinkDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            )
+                        ) {
+                            Text("Unlink")
+                        }
+                    } else {
+                        var emailInput by remember { mutableStateOf("") }
+                        var pinInput by remember { mutableStateOf("") }
+
+                        when (emailLinkUiState) {
+                            is EmailLinkUiState.Idle, is EmailLinkUiState.Error -> {
+                                OutlinedTextField(
+                                    value = emailInput,
+                                    onValueChange = { emailInput = it },
+                                    label = { Text("Email Address") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { onRequestEmailLink(emailInput) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = emailInput.isNotBlank()
+                                ) {
+                                    Text("Send Verification Code")
+                                }
+                                if (emailLinkUiState is EmailLinkUiState.Error) {
+                                    Text(
+                                        text = emailLinkUiState.message,
+                                        color = MaterialTheme.colorScheme.error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
+                            }
+                            is EmailLinkUiState.Loading -> {
+                                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                            }
+                            is EmailLinkUiState.PinRequested -> {
+                                Text(
+                                    text = "Verification code sent to ${emailLinkUiState.email}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                OutlinedTextField(
+                                    value = pinInput,
+                                    onValueChange = { pinInput = it },
+                                    label = { Text("Verification Code") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = { onVerifyEmailLink(pinInput) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = pinInput.isNotBlank()
+                                ) {
+                                    Text("Verify")
+                                }
+                            }
+                            is EmailLinkUiState.Success -> {
+                                Text(
+                                    text = "Email linked successfully!",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Button(
+                                    onClick = onResetEmailLinkState,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Link Another Email")
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -174,6 +290,29 @@ fun SettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (showUnlinkDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnlinkDialog = false },
+            title = { Text("Unlink Email") },
+            text = { Text("Are you sure you want to unlink your email address?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showUnlinkDialog = false
+                        onUnlinkEmail()
+                    }
+                ) {
+                    Text("Unlink", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnlinkDialog = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }

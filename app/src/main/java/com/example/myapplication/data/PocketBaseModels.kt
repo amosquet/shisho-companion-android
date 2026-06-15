@@ -57,6 +57,16 @@ data class VerifyPinRequest(
 )
 
 @Serializable
+data class RequestEmailLinkRequest(
+    val email: String
+)
+
+@Serializable
+data class VerifyEmailLinkRequest(
+    val pin: String
+)
+
+@Serializable
 data class AuthResponse(
     val token: String,
     val record: Record
@@ -73,7 +83,7 @@ data class NoteItem(
     @SerialName("user_id") val userId: String = "",
     val title: String = "",
     val text: String = "",
-    val attachment: String = "", // spelling matches db
+    val attachment: List<String> = emptyList(), // spelling matches db
     val created: String = "",
     val updated: String = "",
     val archived: Boolean = false
@@ -84,7 +94,7 @@ data class CreateNoteRequest(
     @SerialName("user_id") val userId: String = "",
     val title: String,
     val text: String,
-    val attachment: String = "",
+    val attachment: List<String> = emptyList(),
     val archived: Boolean
 )
 
@@ -127,6 +137,7 @@ data class Preferences(
 @Serializable
 data class UserMeResponse(
     @SerialName("discord_id") val discordId: String,
+    val email: String? = null,
     val preferences: Preferences = Preferences()
 )
 

@@ -56,13 +56,16 @@ import com.example.myapplication.ui.LoginScreen
 import com.example.myapplication.ui.LoginViewModel
 import com.example.myapplication.ui.NoteDetailScreen
 import com.example.myapplication.ui.NotesListScreen
+import com.example.myapplication.ui.NotesUiState
 import com.example.myapplication.ui.NotesViewModel
 import com.example.myapplication.ui.ReadingListScreen
+import com.example.myapplication.ui.ReadingListUiState
 import com.example.myapplication.ui.ReadingListViewModel
 import com.example.myapplication.ui.ReminderDetailScreen
 import com.example.myapplication.ui.RemindersListScreen
 import com.example.myapplication.ui.RemindersViewModel
 import com.example.myapplication.ui.SettingsScreen
+import com.example.myapplication.ui.SettingsViewModel
 import com.example.myapplication.ui.ThemeViewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import io.ktor.client.HttpClient
@@ -120,6 +123,10 @@ class MainActivity : ComponentActivity() {
                 if (modelClass.isAssignableFrom(ThemeViewModel::class.java)) {
                     @Suppress("UNCHECKED_CAST")
                     return ThemeViewModel(repository, sharedPrefs) as T
+                }
+                if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
+                    @Suppress("UNCHECKED_CAST")
+                    return SettingsViewModel(repository, sharedPrefs) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel class")
             }
@@ -294,6 +301,8 @@ class MainActivity : ComponentActivity() {
                                         reminderRepository.authToken = repository.authToken
                                         reminderRepository.userId = sharedPrefs.getString("USER_ID", "")
                                         
+                                        themeViewModel.reloadPreferences()
+                                        
                                         navController.navigate("notes") {
                                             popUpTo("login") { inclusive = true }
                                         }
@@ -337,7 +346,7 @@ class MainActivity : ComponentActivity() {
                             composable("detail/{id}") { backStackEntry ->
                                 val id = backStackEntry.arguments?.getString("id")
                                 if (id != null) {
-                                    val item = listViewModel.getItemById(id)
+                                    val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == id } ?: listViewModel.getItemById(id)
                                     if (item != null) {
                                         BookDetailScreen(
                                             item = item,
@@ -350,7 +359,7 @@ class MainActivity : ComponentActivity() {
                             composable("edit/{id}") { backStackEntry ->
                                 val id = backStackEntry.arguments?.getString("id")
                                 if (id != null) {
-                                    val item = listViewModel.getItemById(id)
+                                    val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == id } ?: listViewModel.getItemById(id)
                                     if (item != null) {
                                         EditReadingListItemScreen(
                                             item = item,
@@ -373,7 +382,7 @@ class MainActivity : ComponentActivity() {
                             composable("note_detail/{id}") { backStackEntry ->
                                 val id = backStackEntry.arguments?.getString("id")
                                 if (id != null) {
-                                    val item = notesViewModel.getNoteById(id)
+                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == id } ?: notesViewModel.getNoteById(id)
                                     if (item != null) {
                                         NoteDetailScreen(
                                             item = item,
@@ -386,6 +395,16 @@ class MainActivity : ComponentActivity() {
                                                 notesViewModel.archiveNote(id)
                                                 navController.popBackStack()
                                             },
+                                            onTextUpdate = { newText ->
+                                                val req = com.example.myapplication.data.CreateNoteRequest(
+                                                    userId = item.userId,
+                                                    title = item.title,
+                                                    text = newText,
+                                                    attachment = item.attachment,
+                                                    archived = item.archived
+                                                )
+                                                notesViewModel.updateNote(id, req)
+                                            },
                                             onNavigateBack = { navController.popBackStack() }
                                         )
                                     }
@@ -394,7 +413,7 @@ class MainActivity : ComponentActivity() {
                             composable("edit_note/{id}") { backStackEntry ->
                                 val id = backStackEntry.arguments?.getString("id")
                                 if (id != null) {
-                                    val item = notesViewModel.getNoteById(id)
+                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == id } ?: notesViewModel.getNoteById(id)
                                     if (item != null) {
                                         EditNoteScreen(
                                             item = item,
@@ -405,19 +424,31 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             composable("settings") {
+                                val settingsViewModel: SettingsViewModel = viewModel(factory = viewModelFactory)
+                                val emailLinkUiState by settingsViewModel.uiState.collectAsState()
+                                val linkedEmail by settingsViewModel.linkedEmail.collectAsState()
                                 SettingsScreen(
                                     discordId = sharedPrefs.getString("USER_ID", "") ?: "",
                                     isDarkMode = isDarkMode,
                                     onDarkModeToggle = { themeViewModel.setDarkMode(it) },
                                     use24HourTime = use24HourTime,
                                     on24HourTimeToggle = { themeViewModel.setUse24HourTime(it) },
+                                    linkedEmail = linkedEmail,
+                                    emailLinkUiState = emailLinkUiState,
+                                    onRequestEmailLink = { email -> settingsViewModel.requestEmailLink(email) },
+                                    onVerifyEmailLink = { pin -> settingsViewModel.verifyEmailLink(pin) },
+                                    onUnlinkEmail = { settingsViewModel.unlinkEmail() },
+                                    onResetEmailLinkState = { settingsViewModel.resetState() },
                                     onLogout = {
                                         loginViewModel.logout()
                                         navController.navigate("login") {
                                             popUpTo(0) { inclusive = true }
                                         }
                                     },
-                                    onNavigateBack = { navController.popBackStack() }
+                                    onNavigateBack = { 
+                                        settingsViewModel.resetState()
+                                        navController.popBackStack() 
+                                    }
                                 )
                             }
                             composable("reminders") {
@@ -473,7 +504,7 @@ class MainActivity : ComponentActivity() {
                             composable("reminder_detail/{id}") { backStackEntry ->
                                 val id = backStackEntry.arguments?.getString("id")
                                 if (id != null) {
-                                    val item = remindersViewModel.getReminderById(id)
+                                    val item = remindersUiState.reminders.find { it.id == id } ?: remindersViewModel.getReminderById(id)
                                     if (item != null) {
                                         ReminderDetailScreen(
                                             item = item,
@@ -491,7 +522,7 @@ class MainActivity : ComponentActivity() {
                             composable("edit_reminder/{id}") { backStackEntry ->
                                 val id = backStackEntry.arguments?.getString("id")
                                 if (id != null) {
-                                    val item = remindersViewModel.getReminderById(id)
+                                    val item = remindersUiState.reminders.find { it.id == id } ?: remindersViewModel.getReminderById(id)
                                     if (item != null) {
                                         EditReminderScreen(
                                             item = item,

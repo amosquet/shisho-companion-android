@@ -18,7 +18,6 @@
     <string name="reminder_text">Reminder Text</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
-    <string name="next">Next</string>
     <string name="edit_note">Edit Note</string>
     <string name="edit_reading_list_item">Edit Reading List Item</string>
     <string name="edit_reminder">Edit Reminder</string>
@@ -36,7 +35,6 @@
     <string name="edit">Edit</string>
     <string name="book_cover">Book cover</string>
     <string name="select_date">Select Date</string>
-    <string name="select_date_time">Select Date &amp; Time</string>
     <string name="delete">Delete</string>
     <string name="attachment">Attachment</string>
     <string name="sync">Sync</string>

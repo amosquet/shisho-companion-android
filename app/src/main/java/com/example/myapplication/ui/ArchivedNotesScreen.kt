@@ -10,6 +10,10 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,6 +30,7 @@ fun ArchivedNotesScreen(
     onDeleteSelected: () -> Unit,
     onUnarchiveSelected: () -> Unit
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val inSelectionMode = selectedNoteIds.isNotEmpty()
     Scaffold(
         topBar = {
@@ -47,7 +52,7 @@ fun ArchivedNotesScreen(
                         IconButton(onClick = onUnarchiveSelected) {
                             Icon(Icons.Filled.Unarchive, contentDescription = "Unarchive selected notes")
                         }
-                        IconButton(onClick = onDeleteSelected) {
+                        IconButton(onClick = { showDeleteDialog = true }) {
                             Icon(Icons.Filled.Delete, contentDescription = "Delete selected notes")
                         }
                     }
@@ -108,5 +113,28 @@ fun ArchivedNotesScreen(
                 }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Archived Notes") },
+            text = { Text("Are you sure you want to delete ${selectedNoteIds.size} selected notes?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteSelected()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

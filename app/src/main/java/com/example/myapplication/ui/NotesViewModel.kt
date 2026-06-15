@@ -50,15 +50,15 @@ class NotesViewModel(
 
     fun addNote(request: CreateNoteRequest) {
         viewModelScope.launch {
-            val finalPath = copyUriToCache(request.attachment) ?: ""
-            repository.addNote(request.copy(attachment = finalPath))
+            val finalPaths = request.attachment.mapNotNull { copyUriToCache(it) }.filter { it.isNotEmpty() }
+            repository.addNote(request.copy(attachment = finalPaths))
         }
     }
 
     fun updateNote(id: String, request: CreateNoteRequest) {
         viewModelScope.launch {
-            val finalPath = copyUriToCache(request.attachment) ?: ""
-            repository.updateNote(id, request.copy(attachment = finalPath))
+            val finalPaths = request.attachment.mapNotNull { copyUriToCache(it) }.filter { it.isNotEmpty() }
+            repository.updateNote(id, request.copy(attachment = finalPaths))
         }
     }
 

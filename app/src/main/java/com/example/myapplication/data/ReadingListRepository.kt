@@ -51,6 +51,59 @@ class ReadingListRepository(
         }
     }
 
+    suspend fun requestEmailLinkPin(email: String): Result<Unit> {
+        return try {
+            val response: io.ktor.client.statement.HttpResponse = client.post("$baseUrl/api/auth/request-email-link") {
+                contentType(ContentType.Application.Json)
+                authToken?.let { header("Authorization", "Bearer $it") }
+                setBody(RequestEmailLinkRequest(email))
+            }
+            if (response.status.isSuccess()) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to request email link PIN"))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    suspend fun verifyEmailLinkPin(pin: String): Result<Unit> {
+        return try {
+            val response: io.ktor.client.statement.HttpResponse = client.post("$baseUrl/api/auth/verify-email-link") {
+                contentType(ContentType.Application.Json)
+                authToken?.let { header("Authorization", "Bearer $it") }
+                setBody(VerifyEmailLinkRequest(pin))
+            }
+            if (response.status.isSuccess()) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to verify email link PIN"))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    suspend fun unlinkEmail(): Result<Unit> {
+        return try {
+            val response: io.ktor.client.statement.HttpResponse = client.post("$baseUrl/api/auth/unlink-email") {
+                contentType(ContentType.Application.Json)
+                authToken?.let { header("Authorization", "Bearer $it") }
+            }
+            if (response.status.isSuccess()) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Failed to unlink email"))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
     fun getReadingList(): Flow<List<ReadingListItem>> {
         return dao.getAllItems().map { entities ->
             entities.map {

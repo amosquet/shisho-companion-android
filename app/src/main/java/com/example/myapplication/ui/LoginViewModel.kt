@@ -54,13 +54,15 @@ class LoginViewModel(
                 // Fetch preferences
                 val meResult = repository.getMe()
                 if (meResult.isSuccess) {
-                    val prefs = meResult.getOrNull()?.preferences
+                    val me = meResult.getOrNull()
+                    val prefs = me?.preferences
                     prefs?.let {
                         sharedPrefs.edit()
                             .putBoolean("DARK_MODE", it.companion.darkMode)
                             .putBoolean("USE_24_HOUR_TIME", it.general.use24HourTime)
                             .apply()
                     }
+                    sharedPrefs.edit().putString("USER_EMAIL", me?.email ?: "").apply()
                 }
                 
                 sharedPrefs.edit()

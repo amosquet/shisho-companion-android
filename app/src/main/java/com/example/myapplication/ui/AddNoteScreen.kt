@@ -8,10 +8,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import coil.compose.AsyncImage
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
@@ -26,11 +31,12 @@ fun AddNoteScreen(
 ) {
     var title by remember { mutableStateOf("") }
     var text by remember { mutableStateOf("") }
-    var attachmentUri by remember { mutableStateOf("") }
+    var attachmentUris by remember { mutableStateOf<List<String>>(emptyList()) }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
-        if (uri != null) {
-            attachmentUri = uri.toString()
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            val newUris = (attachmentUris + uris.map { it.toString() }).take(5)
+            attachmentUris = newUris
         }
     }
 
@@ -50,7 +56,7 @@ fun AddNoteScreen(
                                 userId = userId,
                                 title = title,
                                 text = text,
-                                attachment = attachmentUri,
+                                attachment = attachmentUris,
                                 archived = false
                             )
                             onSave(req)
@@ -85,6 +91,18 @@ fun AddNoteScreen(
                 singleLine = true
             )
             
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = {
+                    val prefix = if (text.isEmpty() || text.endsWith("\n")) "" else "\n"
+                    text += "$prefix- [ ] "
+                }) {
+                    Text("+ Checkbox")
+                }
+            }
+            
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -99,7 +117,44 @@ fun AddNoteScreen(
                 onClick = { launcher.launch("*/*") },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (attachmentUri.isEmpty()) "Add Attachment" else "Change Attachment")
+                Text("Add Attachments (${attachmentUris.size}/5)")
+            }
+            if (attachmentUris.isNotEmpty()) {
+                Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(text = "Attachments:", style = MaterialTheme.typography.titleSmall)
+                    attachmentUris.forEachIndexed { index, uri ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = "Preview",
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(4.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            val filename = uri.substringAfterLast('/').substringBefore('?')
+                            Text(
+                                text = filename, 
+                                style = MaterialTheme.typography.bodyMedium, 
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                            IconButton(onClick = { 
+                                val newUris = attachmentUris.toMutableList()
+                                newUris.removeAt(index)
+                                attachmentUris = newUris
+                            }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Remove Attachment")
+                            }
+                        }
+                    }
+                }
             }
         }
     }

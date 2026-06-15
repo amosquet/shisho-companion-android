@@ -55,4 +55,8 @@ class ThemeViewModel(
             }
         }
     }
+    fun reloadPreferences() {
+        _isDarkMode.value = sharedPrefs.getBoolean("DARK_MODE", false)
+        _use24HourTime.value = sharedPrefs.getBoolean("USE_24_HOUR_TIME", false)
+    }
 }
