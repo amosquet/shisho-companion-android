@@ -1,6 +1,8 @@
 package com.example.myapplication
 
 import android.os.Bundle
+import android.content.Intent
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
@@ -87,8 +90,18 @@ private fun getTabIndex(route: String?): Int {
 }
 
 class MainActivity : ComponentActivity() {
+    private val intentAction = MutableStateFlow<String?>(null)
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        intentAction.value = intent.action
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        intent?.action?.let { intentAction.value = it }
         
         val httpClient = HttpClient(OkHttp) {
             install(ContentNegotiation) {
@@ -209,6 +222,21 @@ class MainActivity : ComponentActivity() {
                     val remindersUiState by remindersViewModel.uiState.collectAsState()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination?.route
+                    
+                    val currentIntentAction by intentAction.collectAsState()
+                    LaunchedEffect(currentIntentAction, currentDestination) {
+                        if (currentIntentAction == "com.example.myapplication.ADD_NOTE") {
+                            if (currentDestination != null && currentDestination != "login") {
+                                navController.navigate("notes") {
+                                    popUpTo("list") { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                                navController.navigate("add_note")
+                                intentAction.value = null
+                            }
+                        }
+                    }
                     
                     val announcementsViewModel: AnnouncementsViewModel = viewModel(factory = viewModelFactory)
                     val hasUnreadAnnouncements by announcementsViewModel.hasUnreadAnnouncement.collectAsState()
@@ -360,6 +388,10 @@ class MainActivity : ComponentActivity() {
                                         
                                         navController.navigate("notes") {
                                             popUpTo("login") { inclusive = true }
+                                        }
+                                        if (intentAction.value == "com.example.myapplication.ADD_NOTE") {
+                                            navController.navigate("add_note")
+                                            intentAction.value = null
                                         }
                                         // listViewModel.syncReadingList()
                                         notesViewModel.syncNotes()

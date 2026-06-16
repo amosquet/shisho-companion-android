@@ -43,4 +43,6 @@
     <string name="isbn_format">ISBN: %1$s</string>
     <string name="started_format">Started: %1$s</string>
     <string name="finished_format">Finished: %1$s</string>
+    <string name="add_note_shortcut_short">New Note</string>
+    <string name="add_note_shortcut_long">Create a new note</string>
 </resources>

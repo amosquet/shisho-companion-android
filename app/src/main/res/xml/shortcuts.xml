@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add_note"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add_note"
+        android:shortcutShortLabel="@string/add_note_shortcut_short"
+        android:shortcutLongLabel="@string/add_note_shortcut_long">
+        <intent
+            android:action="com.example.myapplication.ADD_NOTE"
+            android:targetPackage="com.example.myapplication"
+            android:targetClass="com.example.myapplication.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>
