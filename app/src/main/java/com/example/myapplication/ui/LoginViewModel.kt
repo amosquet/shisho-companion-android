@@ -58,7 +58,7 @@ class LoginViewModel(
                     val prefs = me?.preferences
                     prefs?.let {
                         sharedPrefs.edit()
-                            .putBoolean("DARK_MODE", it.companion.darkMode)
+                            .putString("THEME_PREFERENCE", it.companion.theme)
                             .putBoolean("USE_24_HOUR_TIME", it.general.use24HourTime)
                             .apply()
                     }

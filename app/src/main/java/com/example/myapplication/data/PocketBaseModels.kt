@@ -119,7 +119,7 @@ data class CreateReminderRequest(
 
 @Serializable
 data class CompanionPreferences(
-    @SerialName("dark_mode") val darkMode: Boolean = false
+    val theme: String = "LIGHT"
 )
 
 @Serializable

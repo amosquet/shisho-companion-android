@@ -135,10 +135,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val themeViewModel: ThemeViewModel = viewModel(factory = viewModelFactory)
-            val isDarkMode by themeViewModel.isDarkMode.collectAsState()
+            val themePreference by themeViewModel.themePreference.collectAsState()
             val use24HourTime by themeViewModel.use24HourTime.collectAsState()
 
-            MyApplicationTheme(darkTheme = isDarkMode) {
+            MyApplicationTheme(themePreference = themePreference) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -429,8 +429,8 @@ class MainActivity : ComponentActivity() {
                                 val linkedEmail by settingsViewModel.linkedEmail.collectAsState()
                                 SettingsScreen(
                                     discordId = sharedPrefs.getString("USER_ID", "") ?: "",
-                                    isDarkMode = isDarkMode,
-                                    onDarkModeToggle = { themeViewModel.setDarkMode(it) },
+                                    themePreference = themePreference,
+                                    onThemePreferenceChanged = { themeViewModel.setThemePreference(it) },
                                     use24HourTime = use24HourTime,
                                     on24HourTimeToggle = { themeViewModel.setUse24HourTime(it) },
                                     linkedEmail = linkedEmail,

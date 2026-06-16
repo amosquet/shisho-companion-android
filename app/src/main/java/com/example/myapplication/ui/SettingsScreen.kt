@@ -22,8 +22,8 @@ import androidx.compose.ui.text.input.KeyboardType
 @Composable
 fun SettingsScreen(
     discordId: String,
-    isDarkMode: Boolean,
-    onDarkModeToggle: (Boolean) -> Unit,
+    themePreference: String,
+    onThemePreferenceChanged: (String) -> Unit,
     use24HourTime: Boolean,
     on24HourTimeToggle: (Boolean) -> Unit,
     linkedEmail: String,
@@ -208,20 +208,50 @@ fun SettingsScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column {
+                    var themeDropdownExpanded by remember { mutableStateOf(false) }
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Dark Mode",
+                            text = "Theme",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Switch(
-                            checked = isDarkMode,
-                            onCheckedChange = onDarkModeToggle
-                        )
+                        Box {
+                            TextButton(onClick = { themeDropdownExpanded = true }) {
+                                Text(themePreference)
+                            }
+                            DropdownMenu(
+                                expanded = themeDropdownExpanded,
+                                onDismissRequest = { themeDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Light") },
+                                    onClick = {
+                                        onThemePreferenceChanged("LIGHT")
+                                        themeDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Dark") },
+                                    onClick = {
+                                        onThemePreferenceChanged("DARK")
+                                        themeDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("OLED") },
+                                    onClick = {
+                                        onThemePreferenceChanged("OLED")
+                                        themeDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }

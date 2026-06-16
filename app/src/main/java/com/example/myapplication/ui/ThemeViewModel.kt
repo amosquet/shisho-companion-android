@@ -16,22 +16,32 @@ class ThemeViewModel(
     private val sharedPrefs: SharedPreferences
 ) : ViewModel() {
 
-    private val _isDarkMode = MutableStateFlow(sharedPrefs.getBoolean("DARK_MODE", false))
-    val isDarkMode: StateFlow<Boolean> = _isDarkMode.asStateFlow()
+    private fun getThemePreferenceWithMigration(prefs: SharedPreferences): String {
+        if (prefs.contains("DARK_MODE")) {
+            val oldDark = prefs.getBoolean("DARK_MODE", false)
+            val migratedTheme = if (oldDark) "OLED" else "LIGHT"
+            prefs.edit().remove("DARK_MODE").putString("THEME_PREFERENCE", migratedTheme).apply()
+            return migratedTheme
+        }
+        return prefs.getString("THEME_PREFERENCE", "LIGHT") ?: "LIGHT"
+    }
+
+    private val _themePreference = MutableStateFlow(getThemePreferenceWithMigration(sharedPrefs))
+    val themePreference: StateFlow<String> = _themePreference.asStateFlow()
 
     private val _use24HourTime = MutableStateFlow(sharedPrefs.getBoolean("USE_24_HOUR_TIME", false))
     val use24HourTime: StateFlow<Boolean> = _use24HourTime.asStateFlow()
 
-    fun setDarkMode(isDark: Boolean) {
-        _isDarkMode.value = isDark
-        sharedPrefs.edit().putBoolean("DARK_MODE", isDark).apply()
+    fun setThemePreference(theme: String) {
+        _themePreference.value = theme
+        sharedPrefs.edit().putString("THEME_PREFERENCE", theme).apply()
         
         // Sync with backend if logged in
         if (repository.authToken != null) {
             viewModelScope.launch {
                 repository.updatePreferences(
                     Preferences(
-                        companion = CompanionPreferences(darkMode = isDark),
+                        companion = CompanionPreferences(theme = theme),
                         general = com.example.myapplication.data.GeneralPreferences(use24HourTime = _use24HourTime.value)
                     )
                 )
@@ -48,7 +58,7 @@ class ThemeViewModel(
             viewModelScope.launch {
                 repository.updatePreferences(
                     Preferences(
-                        companion = CompanionPreferences(darkMode = _isDarkMode.value),
+                        companion = CompanionPreferences(theme = _themePreference.value),
                         general = com.example.myapplication.data.GeneralPreferences(use24HourTime = use24Hour)
                     )
                 )
@@ -56,7 +66,7 @@ class ThemeViewModel(
         }
     }
     fun reloadPreferences() {
-        _isDarkMode.value = sharedPrefs.getBoolean("DARK_MODE", false)
+        _themePreference.value = getThemePreferenceWithMigration(sharedPrefs)
         _use24HourTime.value = sharedPrefs.getBoolean("USE_24_HOUR_TIME", false)
     }
 }
