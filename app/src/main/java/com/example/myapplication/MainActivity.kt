@@ -162,6 +162,22 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        val imageLoader = coil.ImageLoader.Builder(applicationContext)
+            .okHttpClient {
+                okhttp3.OkHttpClient.Builder()
+                    .addInterceptor { chain ->
+                        val request = chain.request().newBuilder()
+                        val token = sharedPrefs.getString("TOKEN", null)
+                        if (token != null && chain.request().url.toString().contains("/api/files/")) {
+                            request.addHeader("Authorization", "Bearer $token")
+                        }
+                        chain.proceed(request.build())
+                    }
+                    .build()
+            }
+            .build()
+        coil.Coil.setImageLoader(imageLoader)
+
         enableEdgeToEdge()
         setContent {
             val themeViewModel: ThemeViewModel = viewModel(factory = viewModelFactory)

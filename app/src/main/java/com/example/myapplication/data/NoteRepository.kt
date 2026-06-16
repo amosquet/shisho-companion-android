@@ -45,8 +45,7 @@ class NoteRepository(
 
                 val generatedAttachmentUrls = attachmentList.map { att ->
                     if (att.isNotEmpty() && it.id.isNotEmpty() && !it.id.startsWith("local_")) {
-                        val url = if (att.startsWith("http")) att else "$baseUrl/api/files/$collectionName/${it.id}/$att"
-                        if (authToken != null && !url.contains("token=")) "$url?token=$authToken" else url
+                        if (att.startsWith("http")) att else "$baseUrl/api/files/$collectionName/${it.id}/$att"
                     } else if (att.startsWith("/")) {
                         "file://$att"
                     } else {
