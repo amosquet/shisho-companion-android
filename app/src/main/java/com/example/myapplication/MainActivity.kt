@@ -39,6 +39,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.example.myapplication.data.AppDatabase
 import com.example.myapplication.data.NoteRepository
 import com.example.myapplication.data.ReadingListRepository
@@ -100,7 +102,35 @@ class MainActivity : ComponentActivity() {
         val repository = ReadingListRepository(httpClient, database.readingListDao())
         val noteRepository = NoteRepository(httpClient, database.noteDao())
         val reminderRepository = ReminderRepository(httpClient, database.reminderDao())
-        val sharedPrefs = applicationContext.getSharedPreferences("app_prefs", MODE_PRIVATE)
+        
+        val oldPrefs = applicationContext.getSharedPreferences("app_prefs", MODE_PRIVATE)
+        val masterKey = MasterKey.Builder(applicationContext)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+            
+        val sharedPrefs = EncryptedSharedPreferences.create(
+            applicationContext,
+            "secret_shared_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+        
+        if (oldPrefs.all.isNotEmpty()) {
+            val editor = sharedPrefs.edit()
+            oldPrefs.all.forEach { (key, value) ->
+                when (value) {
+                    is String -> editor.putString(key, value)
+                    is Boolean -> editor.putBoolean(key, value)
+                    is Int -> editor.putInt(key, value)
+                    is Float -> editor.putFloat(key, value)
+                    is Long -> editor.putLong(key, value)
+                    is Set<*> -> @Suppress("UNCHECKED_CAST") editor.putStringSet(key, value as Set<String>)
+                }
+            }
+            editor.apply()
+            oldPrefs.edit().clear().apply()
+        }
         
         val viewModelFactory = object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
