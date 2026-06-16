@@ -28,6 +28,7 @@ import com.example.myapplication.data.NoteItem
 @Composable
 fun NotesListScreen(
     uiState: NotesUiState,
+    hasUnreadAnnouncements: Boolean,
     selectedNoteIds: Set<String>,
     onSyncClick: () -> Unit,
     onItemClick: (String) -> Unit,
@@ -67,7 +68,13 @@ fun NotesListScreen(
                             Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.sync))
                         }
                         IconButton(onClick = onSettingsClick) {
-                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                            if (hasUnreadAnnouncements) {
+                                BadgedBox(badge = { Badge() }) {
+                                    Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                                }
+                            } else {
+                                Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                            }
                         }
                     }
                 },

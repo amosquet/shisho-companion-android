@@ -13,8 +13,6 @@ if (envFile.exists()) {
     envProps.load(envFile.inputStream())
 }
 val pocketbaseUrl = envProps.getProperty("POCKETBASE_URL") ?: "http://10.0.2.2:8090"
-val pocketbaseUsername = envProps.getProperty("POCKETBASE_USERNAME") ?: ""
-val pocketbasePassword = envProps.getProperty("POCKETBASE_PASSWORD") ?: ""
 
 
 android {
@@ -33,8 +31,6 @@ android {
         versionName = "1.0"
         
         buildConfigField("String", "POCKETBASE_URL", "\"${pocketbaseUrl}\"")
-        buildConfigField("String", "DEV_USERNAME", "\"${pocketbaseUsername}\"")
-        buildConfigField("String", "DEV_PASSWORD", "\"${pocketbasePassword}\"")
     }
 
     buildTypes {

@@ -18,6 +18,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.example.myapplication.data.Announcement
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,6 +37,8 @@ fun SettingsScreen(
     onVerifyEmailLink: (String) -> Unit,
     onUnlinkEmail: () -> Unit,
     onResetEmailLinkState: () -> Unit,
+    announcements: List<Announcement>,
+    onMarkAnnouncementsRead: () -> Unit,
     onLogout: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -60,7 +66,8 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -309,6 +316,35 @@ fun SettingsScreen(
                 onClick = { uriHandler.openUri("https://status.amcloud.dev") }
             ) {
                 Text("Check Server Status")
+            }
+
+            val latestAnnouncement = announcements.lastOrNull()
+            if (latestAnnouncement != null) {
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    text = "Announcement",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = latestAnnouncement.message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+                
+                LaunchedEffect(latestAnnouncement.id) {
+                    onMarkAnnouncementsRead()
+                }
             }
         }
     }

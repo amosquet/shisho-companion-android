@@ -69,6 +69,7 @@ import com.example.myapplication.ui.RemindersViewModel
 import com.example.myapplication.ui.SettingsScreen
 import com.example.myapplication.ui.SettingsViewModel
 import com.example.myapplication.ui.ThemeViewModel
+import com.example.myapplication.ui.AnnouncementsViewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -158,6 +159,10 @@ class MainActivity : ComponentActivity() {
                     @Suppress("UNCHECKED_CAST")
                     return SettingsViewModel(repository, sharedPrefs) as T
                 }
+                if (modelClass.isAssignableFrom(AnnouncementsViewModel::class.java)) {
+                    @Suppress("UNCHECKED_CAST")
+                    return AnnouncementsViewModel(httpClient, sharedPrefs) as T
+                }
                 throw IllegalArgumentException("Unknown ViewModel class")
             }
         }
@@ -204,6 +209,10 @@ class MainActivity : ComponentActivity() {
                     val remindersUiState by remindersViewModel.uiState.collectAsState()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination?.route
+                    
+                    val announcementsViewModel: AnnouncementsViewModel = viewModel(factory = viewModelFactory)
+                    val hasUnreadAnnouncements by announcementsViewModel.hasUnreadAnnouncement.collectAsState()
+                    val announcements by announcementsViewModel.announcements.collectAsState()
 
                     Scaffold(
                         floatingActionButton = {
@@ -361,6 +370,7 @@ class MainActivity : ComponentActivity() {
                             composable("list") {
                                 ReadingListScreen(
                                     uiState = listUiState,
+                                    hasUnreadAnnouncements = hasUnreadAnnouncements,
                                     onSyncClick = { listViewModel.syncReadingList() },
                                     onItemClick = { id -> navController.navigate("detail/$id") },
                                     onSettingsClick = { navController.navigate("settings") }
@@ -370,6 +380,7 @@ class MainActivity : ComponentActivity() {
                                 val selectedNoteIds by notesViewModel.selectedNoteIds.collectAsState()
                                 NotesListScreen(
                                     uiState = notesUiState,
+                                    hasUnreadAnnouncements = hasUnreadAnnouncements,
                                     selectedNoteIds = selectedNoteIds,
                                     onSyncClick = { notesViewModel.syncNotes() },
                                     onItemClick = { id -> navController.navigate("note_detail/$id") },
@@ -485,6 +496,8 @@ class MainActivity : ComponentActivity() {
                                     onVerifyEmailLink = { pin -> settingsViewModel.verifyEmailLink(pin) },
                                     onUnlinkEmail = { settingsViewModel.unlinkEmail() },
                                     onResetEmailLinkState = { settingsViewModel.resetState() },
+                                    announcements = announcements,
+                                    onMarkAnnouncementsRead = { announcementsViewModel.markAsRead() },
                                     onLogout = {
                                         loginViewModel.logout()
                                         navController.navigate("login") {
@@ -501,6 +514,7 @@ class MainActivity : ComponentActivity() {
                                 val selectedReminderIds by remindersViewModel.selectedReminderIds.collectAsState()
                                 RemindersListScreen(
                                     uiState = remindersUiState,
+                                    hasUnreadAnnouncements = hasUnreadAnnouncements,
                                     selectedReminderIds = selectedReminderIds,
                                     use24HourTime = use24HourTime,
                                     onSyncClick = { remindersViewModel.syncReminders() },

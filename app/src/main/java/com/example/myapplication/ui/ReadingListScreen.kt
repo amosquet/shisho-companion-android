@@ -25,6 +25,7 @@ import com.example.myapplication.data.ReadingListItem
 @Composable
 fun ReadingListScreen(
     uiState: ReadingListUiState,
+    hasUnreadAnnouncements: Boolean,
     onSyncClick: () -> Unit,
     onItemClick: (String) -> Unit,
     onSettingsClick: () -> Unit
@@ -38,7 +39,13 @@ fun ReadingListScreen(
                         Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.sync))
                     }
                     IconButton(onClick = onSettingsClick) {
-                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                        if (hasUnreadAnnouncements) {
+                            BadgedBox(badge = { Badge() }) {
+                                Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                            }
+                        } else {
+                            Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.settings))
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
