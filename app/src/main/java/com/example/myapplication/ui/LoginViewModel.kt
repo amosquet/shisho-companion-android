@@ -45,7 +45,7 @@ class LoginViewModel(
 
     fun verifyPin(discordId: String, pin: String) {
         viewModelScope.launch {
-            _uiState.value = LoginUiState.Loading
+            _uiState.value = LoginUiState.PinRequested(discordId, isVerifying = true)
             val result = repository.verifyPin(discordId, pin)
             if (result.isSuccess) {
                 val userId = repository.userId ?: ""
@@ -71,7 +71,11 @@ class LoginViewModel(
                     .apply()
                 _uiState.value = LoginUiState.Success
             } else {
-                _uiState.value = LoginUiState.Error(result.exceptionOrNull()?.message ?: "Invalid PIN")
+                _uiState.value = LoginUiState.PinRequested(
+                    discordId = discordId,
+                    isVerifying = false,
+                    verifyError = result.exceptionOrNull()?.message ?: "Invalid PIN"
+                )
             }
         }
     }
@@ -90,7 +94,11 @@ class LoginViewModel(
 sealed class LoginUiState {
     object Idle : LoginUiState()
     object Loading : LoginUiState()
-    data class PinRequested(val discordId: String) : LoginUiState()
+    data class PinRequested(
+        val discordId: String,
+        val isVerifying: Boolean = false,
+        val verifyError: String? = null
+    ) : LoginUiState()
     object Success : LoginUiState()
     data class Error(val message: String) : LoginUiState()
 }

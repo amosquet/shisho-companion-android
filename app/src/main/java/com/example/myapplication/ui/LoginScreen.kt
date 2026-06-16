@@ -10,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,6 +23,20 @@ fun LoginScreen(
 ) {
     var discordId by remember { mutableStateOf("") }
     var pin by remember { mutableStateOf("") }
+    var showInfoDialog by remember { mutableStateOf(false) }
+
+    if (showInfoDialog) {
+        AlertDialog(
+            onDismissRequest = { showInfoDialog = false },
+            title = { Text("Discord User ID") },
+            text = { Text("Your Discord User ID is a unique numerical identifier, not your username. You can find it by enabling Developer Mode in Discord settings and right-clicking your profile.") },
+            confirmButton = {
+                TextButton(onClick = { showInfoDialog = false }) {
+                    Text("Got it")
+                }
+            }
+        )
+    }
 
     LaunchedEffect(uiState) {
         if (uiState is LoginUiState.Success) {
@@ -60,6 +76,14 @@ fun LoginScreen(
                     value = discordId,
                     onValueChange = { discordId = it },
                     label = { Text(stringResource(R.string.discord_user_id)) },
+                    trailingIcon = {
+                        IconButton(onClick = { showInfoDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = "Info about Discord User ID"
+                            )
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -122,9 +146,9 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                if (uiState is LoginUiState.Error) {
+                if (uiState.verifyError != null) {
                     Text(
-                        text = uiState.message,
+                        text = uiState.verifyError,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -134,13 +158,13 @@ fun LoginScreen(
                 Button(
                     onClick = { onVerifyPin(discordId, pin) },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                    enabled = pin.isNotBlank() && uiState !is LoginUiState.Loading,
+                    enabled = pin.isNotBlank() && !uiState.isVerifying,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    if (uiState is LoginUiState.Loading) {
+                    if (uiState.isVerifying) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
                             color = MaterialTheme.colorScheme.onPrimary,
