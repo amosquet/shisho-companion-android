@@ -9,6 +9,7 @@ import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.patch
+import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
@@ -72,8 +73,46 @@ class NoteRepository(
             // 1. Upload any pending local items
             val pendingItems = dao.getPendingSyncNotes()
             for (pending in pendingItems) {
-
                 try {
+                    val attachmentList = try {
+                        if (pending.attachment.startsWith("[")) {
+                            kotlinx.serialization.json.Json.decodeFromString<List<String>>(pending.attachment)
+                        } else if (pending.attachment.isNotBlank()) {
+                            listOf(pending.attachment)
+                        } else {
+                            emptyList()
+                        }
+                    } catch (_: Exception) {
+                        if (pending.attachment.isNotBlank()) listOf(pending.attachment) else emptyList()
+                    }
+
+                    client.post("$baseUrl/api/collections/$collectionName/records") {
+                        authToken?.let { header("Authorization", "Bearer $it") }
+                        setBody(MultiPartFormDataContent(formData {
+                            append("user_id", pending.userId)
+                            append("title", pending.title)
+                            append("text", pending.text)
+                            append("archived", pending.archived.toString())
+                            if (attachmentList.isEmpty()) {
+                                append("attachment", "")
+                            } else {
+                                attachmentList.forEach { att ->
+                                    if (att.startsWith("/")) {
+                                        val file = File(att)
+                                        if (file.exists()) {
+                                            append("attachment", file.readBytes(), Headers.build {
+                                                append(HttpHeaders.ContentType, "application/octet-stream")
+                                                append(HttpHeaders.ContentDisposition, "filename=\"${file.name}\"")
+                                            })
+                                        }
+                                    } else {
+                                        val cleanFilename = att.substringAfterLast("/").substringBefore("?")
+                                        append("attachment", cleanFilename)
+                                    }
+                                }
+                            }
+                        }))
+                    }
 
                     dao.deleteById(pending.id)
                 } catch (e: Exception) {
