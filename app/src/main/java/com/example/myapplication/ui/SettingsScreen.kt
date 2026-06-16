@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.platform.LocalUriHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -299,6 +300,15 @@ fun SettingsScreen(
                 )
             ) {
                 Text("Log Out")
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            val uriHandler = LocalUriHandler.current
+            TextButton(
+                onClick = { uriHandler.openUri("https://status.amcloud.dev") }
+            ) {
+                Text("Check Server Status")
             }
         }
     }
