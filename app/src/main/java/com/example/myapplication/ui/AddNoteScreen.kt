@@ -99,19 +99,27 @@ fun AddNoteScreen(
                     val prefix = if (text.isEmpty() || text.endsWith("\n")) "" else "\n"
                     text += "$prefix- [ ] "
                 }) {
-                    Text("+ Checkbox")
+                    Text("+ List Item")
                 }
             }
             
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                label = { Text(stringResource(R.string.content)) },
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
-                maxLines = 10
-            )
+                    .heightIn(min = 200.dp)
+            ) {
+                if (text.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.content),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+                com.example.myapplication.ui.components.NoteEditor(
+                    text = text,
+                    onTextChange = { text = it },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Button(
                 onClick = { launcher.launch("*/*") },

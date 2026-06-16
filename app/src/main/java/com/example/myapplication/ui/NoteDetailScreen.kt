@@ -118,9 +118,11 @@ fun NoteDetailScreen(
             val lines = item.text.split("\n")
             lines.forEachIndexed { index, line ->
                 val trimmedLine = line.trimStart()
-                if (trimmedLine.startsWith("- [ ] ") || trimmedLine.startsWith("- [x] ", ignoreCase = true)) {
-                    val isChecked = trimmedLine.startsWith("- [x] ", ignoreCase = true)
-                    val content = trimmedLine.substring(6)
+                val checkboxRegex = Regex("""^-\s*\[([ xX]?)\]\s*(.*)""")
+                val matchResult = checkboxRegex.find(trimmedLine)
+                if (matchResult != null) {
+                    val isChecked = matchResult.groupValues[1].equals("x", ignoreCase = true)
+                    val content = matchResult.groupValues[2]
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
