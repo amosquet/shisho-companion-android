@@ -3,4 +3,16 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>
     </domain-config>
+    
+    <domain-config>
+        <domain includeSubdomains="true">shisho.amcloud.dev</domain>
+        <pin-set expiration="2026-12-31">
+            <!-- Leaf Certificate -->
+            <pin digest="SHA-256">UzoRtYNNgxNCfgHZn47F0jaj8JXeterqbHoY2J9pdoU=</pin>
+            <!-- Intermediate Certificate -->
+            <pin digest="SHA-256">kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</pin>
+            <!-- Root Certificate -->
+            <pin digest="SHA-256">mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</pin>
+        </pin-set>
+    </domain-config>
 </network-security-config>
