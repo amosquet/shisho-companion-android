@@ -47,6 +47,7 @@ fun SettingsScreen(
     val scrollState = rememberScrollState()
     val uriHandler = LocalUriHandler.current
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showUnlinkDiscordDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -242,7 +243,7 @@ fun SettingsScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = onUnlinkDiscord,
+                    onClick = { showUnlinkDiscordDialog = true },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     Text("Unlink Discord")
@@ -381,6 +382,30 @@ fun SettingsScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { showLogoutDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            if (showUnlinkDiscordDialog) {
+                AlertDialog(
+                    onDismissRequest = { showUnlinkDiscordDialog = false },
+                    title = { Text("Confirm Unlink") },
+                    text = { Text("Are you sure you want to unlink your Discord account? You will no longer receive reminders or be able to manage notes via the Shisho bot.") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showUnlinkDiscordDialog = false
+                                onUnlinkDiscord()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Unlink")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showUnlinkDiscordDialog = false }) {
                             Text("Cancel")
                         }
                     }

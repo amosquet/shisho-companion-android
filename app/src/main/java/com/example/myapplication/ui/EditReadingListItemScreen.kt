@@ -169,7 +169,7 @@ fun EditReadingListItemScreen(
 
             Button(
                 onClick = {
-                    if (title.isNotBlank()) {
+                    if (title.isNotBlank() || isbn.isNotBlank()) {
                         var coverBytes: ByteArray? = null
                         var coverFilename: String? = null
                         coverUri?.let { uri ->
@@ -203,7 +203,7 @@ fun EditReadingListItemScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = title.isNotBlank()
+                enabled = title.isNotBlank() || isbn.isNotBlank()
             ) {
                 Text(stringResource(R.string.save))
             }
