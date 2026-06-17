@@ -122,7 +122,8 @@ data class CompanionPreferences(
 @Serializable
 data class GeneralPreferences(
     val language: String = "en",
-    @SerialName("time_format") val timeFormat: String = "SYSTEM"
+    @SerialName("time_format") val timeFormat: String = "SYSTEM",
+    @SerialName("send_reminders_to_discord") val sendRemindersToDiscord: Boolean = false
 )
 
 @Serializable
@@ -135,7 +136,7 @@ data class Preferences(
 data class UserMeResponse(
     @SerialName("discord_id") val discordId: String,
     val email: String? = null,
-    val preferences: Preferences = Preferences()
+    val preferences: Preferences? = null
 )
 
 @Serializable

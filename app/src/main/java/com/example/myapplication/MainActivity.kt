@@ -204,6 +204,7 @@ class MainActivity : ComponentActivity() {
             val themeViewModel: ThemeViewModel = viewModel(factory = viewModelFactory)
             val themePreference by themeViewModel.themePreference.collectAsState()
             val timeFormatPreference by themeViewModel.timeFormatPreference.collectAsState()
+            val sendRemindersToDiscordPreference by themeViewModel.sendRemindersToDiscordPreference.collectAsState()
             val context = androidx.compose.ui.platform.LocalContext.current
             val use24HourTime = when (timeFormatPreference) {
                 "24_HOUR" -> true
@@ -527,6 +528,8 @@ class MainActivity : ComponentActivity() {
                                     onThemePreferenceChanged = { themeViewModel.setThemePreference(it) },
                                     timeFormatPreference = timeFormatPreference,
                                     onTimeFormatPreferenceChanged = { themeViewModel.setTimeFormatPreference(it) },
+                                    sendRemindersToDiscordPreference = sendRemindersToDiscordPreference,
+                                    onSendRemindersToDiscordPreferenceChanged = { themeViewModel.setSendRemindersToDiscordPreference(it) },
                                     linkedDiscordId = linkedDiscordId,
                                     discordLinkUiState = discordLinkUiState,
                                     onRequestDiscordLink = { id -> settingsViewModel.requestDiscordPin(id) },

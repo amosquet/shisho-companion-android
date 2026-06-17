@@ -32,6 +32,8 @@ fun SettingsScreen(
     onThemePreferenceChanged: (String) -> Unit,
     timeFormatPreference: String,
     onTimeFormatPreferenceChanged: (String) -> Unit,
+    sendRemindersToDiscordPreference: Boolean,
+    onSendRemindersToDiscordPreferenceChanged: (Boolean) -> Unit,
     linkedDiscordId: String,
     discordLinkUiState: DiscordLinkUiState,
     onRequestDiscordLink: (String) -> Unit,
@@ -226,7 +228,19 @@ fun SettingsScreen(
                 Text("Please log in to link your Discord account.", style = MaterialTheme.typography.bodyMedium)
             } else if (linkedDiscordId.isNotBlank()) {
                 Text("Linked to Discord ID: $linkedDiscordId", style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Send Reminders to Discord", style = MaterialTheme.typography.bodyLarge)
+                    Switch(
+                        checked = sendRemindersToDiscordPreference,
+                        onCheckedChange = { onSendRemindersToDiscordPreferenceChanged(it) }
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = onUnlinkDiscord,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)

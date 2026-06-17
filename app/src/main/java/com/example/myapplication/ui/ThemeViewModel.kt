@@ -42,6 +42,9 @@ class ThemeViewModel(
     private val _timeFormatPreference = MutableStateFlow(getTimeFormatPreferenceWithMigration(sharedPrefs))
     val timeFormatPreference: StateFlow<String> = _timeFormatPreference.asStateFlow()
 
+    private val _sendRemindersToDiscordPreference = MutableStateFlow(sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false))
+    val sendRemindersToDiscordPreference: StateFlow<Boolean> = _sendRemindersToDiscordPreference.asStateFlow()
+
     fun setThemePreference(theme: String) {
         sharedPrefs.edit().putString("THEME_PREFERENCE", theme).apply()
         _themePreference.value = theme
@@ -71,12 +74,34 @@ class ThemeViewModel(
                 val currentMeResult = repository.getMe()
                 if (currentMeResult.isSuccess) {
                     val me = currentMeResult.getOrNull()
+                    val currentGeneral = me?.preferences?.general ?: com.example.myapplication.data.GeneralPreferences()
                     val newPrefs = me?.preferences?.copy(
+                        general = currentGeneral.copy(timeFormat = format)
+                    ) ?: com.example.myapplication.data.Preferences(
                         general = com.example.myapplication.data.GeneralPreferences(timeFormat = format)
                     )
-                    if (newPrefs != null) {
-                        repository.updatePreferences(newPrefs)
-                    }
+                    repository.updatePreferences(newPrefs)
+                }
+            }
+        }
+    }
+
+    fun setSendRemindersToDiscordPreference(send: Boolean) {
+        sharedPrefs.edit().putBoolean("SEND_REMINDERS_TO_DISCORD", send).apply()
+        _sendRemindersToDiscordPreference.value = send
+        
+        viewModelScope.launch {
+            if (!repository.authToken.isNullOrEmpty()) {
+                val currentMeResult = repository.getMe()
+                if (currentMeResult.isSuccess) {
+                    val me = currentMeResult.getOrNull()
+                    val currentGeneral = me?.preferences?.general ?: com.example.myapplication.data.GeneralPreferences()
+                    val newPrefs = me?.preferences?.copy(
+                        general = currentGeneral.copy(sendRemindersToDiscord = send)
+                    ) ?: com.example.myapplication.data.Preferences(
+                        general = com.example.myapplication.data.GeneralPreferences(sendRemindersToDiscord = send)
+                    )
+                    repository.updatePreferences(newPrefs)
                 }
             }
         }
@@ -85,5 +110,6 @@ class ThemeViewModel(
     fun reloadPreferences() {
         _themePreference.value = getThemePreferenceWithMigration(sharedPrefs)
         _timeFormatPreference.value = getTimeFormatPreferenceWithMigration(sharedPrefs)
+        _sendRemindersToDiscordPreference.value = sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false)
     }
 }

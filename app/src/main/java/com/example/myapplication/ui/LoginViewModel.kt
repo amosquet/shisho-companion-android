@@ -83,6 +83,7 @@ class LoginViewModel(
                 sharedPrefs.edit()
                     .putString("THEME_PREFERENCE", it.companion.theme)
                     .putString("TIME_FORMAT_PREFERENCE", it.general.timeFormat)
+                    .putBoolean("SEND_REMINDERS_TO_DISCORD", it.general.sendRemindersToDiscord)
                     .apply()
             }
             sharedPrefs.edit().putString("DISCORD_ID", me?.discordId ?: "").apply()
