@@ -13,6 +13,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
@@ -68,6 +69,7 @@ class NoteRepository(
     }
 
     suspend fun sync() {
+        if (authToken.isNullOrEmpty()) return
         try {
             // 1. Upload any pending local items
             val pendingItems = dao.getPendingSyncNotes()
@@ -85,7 +87,7 @@ class NoteRepository(
                         if (pending.attachment.isNotBlank()) listOf(pending.attachment) else emptyList()
                     }
 
-                    client.post("$baseUrl/api/collections/$collectionName/records") {
+                    val response = client.post("$baseUrl/api/collections/$collectionName/records") {
                         authToken?.let { header("Authorization", "Bearer $it") }
                         setBody(MultiPartFormDataContent(formData {
                             append("user_id", pending.userId)
@@ -113,7 +115,11 @@ class NoteRepository(
                         }))
                     }
 
-                    dao.deleteById(pending.id)
+                    if (response.status.isSuccess()) {
+                        dao.deleteById(pending.id)
+                    } else {
+                        println("Failed to sync note: ${response.status}")
+                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

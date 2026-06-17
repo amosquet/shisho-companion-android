@@ -64,6 +64,10 @@ class ReadingListRepository(
 
     suspend fun requestDiscordPin(discordId: String): Result<Unit> {
         return try {
+            val uid = userId
+            if (uid == null) {
+                return Result.failure(Exception("Not logged in"))
+            }
             val response: io.ktor.client.statement.HttpResponse = client.post("$shishoApiUrl/api/auth/request-pin") {
                 contentType(ContentType.Application.Json)
                 setBody(RequestPinRequest(discordId))
@@ -151,6 +155,7 @@ class ReadingListRepository(
     }
 
     suspend fun sync() {
+        if (authToken.isNullOrEmpty()) return
         try {
             // 1. Upload any pending local items
             val pendingItems = dao.getPendingSyncItems()

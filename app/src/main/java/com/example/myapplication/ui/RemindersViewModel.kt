@@ -32,6 +32,14 @@ class RemindersViewModel(
         viewModelScope.launch {
             repository.getReminders().collect { items ->
                 _uiState.value = _uiState.value.copy(reminders = items)
+                
+                items.forEach { item ->
+                    if (!item.isSent) {
+                        com.example.myapplication.notifications.NotificationHelper.scheduleAlarm(application, item)
+                    } else {
+                        com.example.myapplication.notifications.NotificationHelper.cancelAlarm(application, item.id)
+                    }
+                }
             }
         }
     }

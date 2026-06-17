@@ -5,6 +5,7 @@ import com.example.myapplication.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,6 +44,7 @@ fun SettingsScreen(
 ) {
     val scrollState = rememberScrollState()
     val uriHandler = LocalUriHandler.current
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -220,7 +222,9 @@ fun SettingsScreen(
             Text("Discord Integration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (linkedDiscordId.isNotBlank()) {
+            if (userEmail.isBlank()) {
+                Text("Please log in to link your Discord account.", style = MaterialTheme.typography.bodyMedium)
+            } else if (linkedDiscordId.isNotBlank()) {
                 Text("Linked to Discord ID: $linkedDiscordId", style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
@@ -235,6 +239,7 @@ fun SettingsScreen(
 
                 var inputDiscordId by remember { mutableStateOf("") }
                 var inputPin by remember { mutableStateOf("") }
+                var showDiscordIdInfoDialog by remember { mutableStateOf(false) }
 
                 when (discordLinkUiState) {
                     is DiscordLinkUiState.Idle -> {
@@ -243,8 +248,25 @@ fun SettingsScreen(
                             onValueChange = { inputDiscordId = it },
                             label = { Text("Discord User ID") },
                             modifier = Modifier.fillMaxWidth(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            trailingIcon = {
+                                IconButton(onClick = { showDiscordIdInfoDialog = true }) {
+                                    Icon(Icons.Filled.Info, contentDescription = "What is a Discord ID?")
+                                }
+                            }
                         )
+                        if (showDiscordIdInfoDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showDiscordIdInfoDialog = false },
+                                title = { Text("Discord User ID") },
+                                text = { Text("Your Discord User ID is a 17-19 digit number. To find it, enable 'Developer Mode' in your Discord App Settings under 'Advanced', then right-click or tap your profile and select 'Copy User ID'.") },
+                                confirmButton = {
+                                    TextButton(onClick = { showDiscordIdInfoDialog = false }) {
+                                        Text("OK")
+                                    }
+                                }
+                            )
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
                             onClick = { onRequestDiscordLink(inputDiscordId) },
@@ -320,11 +342,35 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = onLogout,
+                onClick = { showLogoutDialog = true },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Logout")
+            }
+
+            if (showLogoutDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLogoutDialog = false },
+                    title = { Text("Confirm Logout") },
+                    text = { Text("Are you sure you want to log out?") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                showLogoutDialog = false
+                                onLogout()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                        ) {
+                            Text("Logout")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showLogoutDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
             }
             
             Spacer(modifier = Modifier.height(32.dp))

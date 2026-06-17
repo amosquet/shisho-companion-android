@@ -4,6 +4,7 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID
@@ -36,39 +37,88 @@ class ReminderRepository(
     }
 
     suspend fun sync() {
+        if (authToken.isNullOrEmpty()) return
         try {
-            val uid = userId ?: return
-            val response: PocketBaseListResponse<ReminderItem> = 
-                client.get("$baseUrl/api/collections/$collectionName/records") {
-                    authToken?.let { header("Authorization", "Bearer $it") }
-                    parameter("filter", "user_id = '$uid'")
-                }.body()
-
-            dao.deleteAll()
-            val entities = response.items.map {
-                ReminderEntity(
-                    id = it.id,
-                    userId = it.userId,
-                    reminderText = it.reminderText,
-                    remindAt = it.remindAt,
-                    isSent = it.isSent,
-                    created = it.created,
-                    updated = it.updated
-                )
+            val pendingItems = dao.getPendingSyncReminders()
+            for (pending in pendingItems) {
+                try {
+                    val req = CreateReminderRequest(
+                        userId = pending.userId,
+                        reminderText = pending.reminderText,
+                        remindAt = pending.remindAt,
+                        isSent = pending.isSent
+                    )
+                    
+                    val response = if (pending.id.startsWith("local_")) {
+                        client.post("$baseUrl/api/collections/$collectionName/records") {
+                            authToken?.let { header("Authorization", "Bearer $it") }
+                            contentType(ContentType.Application.Json)
+                            setBody(req)
+                        }
+                    } else {
+                        client.patch("$baseUrl/api/collections/$collectionName/records/${pending.id}") {
+                            authToken?.let { header("Authorization", "Bearer $it") }
+                            contentType(ContentType.Application.Json)
+                            setBody(req)
+                        }
+                    }
+                    
+                    if (response.status.isSuccess()) {
+                        if (pending.id.startsWith("local_")) {
+                            dao.deleteReminderById(pending.id)
+                        } else {
+                            dao.updateReminder(pending.copy(isPendingSync = false))
+                        }
+                    } else {
+                        println("Failed to sync reminder: ${response.status}")
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
-            dao.insertReminders(entities)
+
+            val uid = userId
+            if (!uid.isNullOrEmpty()) {
+                val response: PocketBaseListResponse<ReminderItem> = 
+                    client.get("$baseUrl/api/collections/$collectionName/records") {
+                        authToken?.let { header("Authorization", "Bearer $it") }
+                        parameter("filter", "user_id = '$uid'")
+                    }.body()
+
+                dao.clearSyncedReminders()
+                val entities = response.items.map {
+                    ReminderEntity(
+                        id = it.id,
+                        userId = it.userId,
+                        reminderText = it.reminderText,
+                        remindAt = it.remindAt,
+                        isSent = it.isSent,
+                        created = it.created,
+                        updated = it.updated,
+                        isPendingSync = false
+                    )
+                }
+                dao.insertReminders(entities)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     suspend fun addReminder(req: CreateReminderRequest) {
+        val fakeId = "local_" + UUID.randomUUID().toString().replace("-", "")
+        val newEntity = ReminderEntity(
+            id = fakeId,
+            userId = req.userId,
+            reminderText = req.reminderText,
+            remindAt = req.remindAt,
+            isSent = req.isSent,
+            created = "",
+            updated = "",
+            isPendingSync = true
+        )
+        dao.insertReminder(newEntity)
         try {
-            val remoteItem: ReminderItem = client.post("$baseUrl/api/collections/$collectionName/records") {
-                authToken?.let { header("Authorization", "Bearer $it") }
-                contentType(ContentType.Application.Json)
-                setBody(req)
-            }.body()
             sync()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -76,26 +126,49 @@ class ReminderRepository(
     }
 
     suspend fun updateReminder(id: String, req: CreateReminderRequest) {
-        try {
-            client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
-                authToken?.let { header("Authorization", "Bearer $it") }
-                contentType(ContentType.Application.Json)
-                setBody(req)
+        if (id.startsWith("local_")) {
+            val existing = dao.getReminderById(id)
+            if (existing != null) {
+                dao.insertReminder(existing.copy(
+                    reminderText = req.reminderText,
+                    remindAt = req.remindAt,
+                    isSent = req.isSent
+                ))
             }
-            sync()
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } else {
+            try {
+                client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
+                    authToken?.let { header("Authorization", "Bearer $it") }
+                    contentType(ContentType.Application.Json)
+                    setBody(req)
+                }
+                sync()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                val existing = dao.getReminderById(id)
+                if (existing != null) {
+                    dao.insertReminder(existing.copy(
+                        reminderText = req.reminderText,
+                        remindAt = req.remindAt,
+                        isSent = req.isSent
+                    ))
+                }
+            }
         }
     }
 
     suspend fun deleteReminder(id: String) {
-        try {
-            client.delete("$baseUrl/api/collections/$collectionName/records/$id") {
-                authToken?.let { header("Authorization", "Bearer $it") }
-            }
+        if (id.startsWith("local_")) {
             dao.deleteReminderById(id)
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } else {
+            try {
+                client.delete("$baseUrl/api/collections/$collectionName/records/$id") {
+                    authToken?.let { header("Authorization", "Bearer $it") }
+                }
+                dao.deleteReminderById(id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

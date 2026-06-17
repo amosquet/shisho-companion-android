@@ -102,6 +102,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        com.example.myapplication.notifications.NotificationHelper.createNotificationChannel(this)
+
         intent?.action?.let { intentAction.value = it }
         
         val httpClient = HttpClient(OkHttp) {
