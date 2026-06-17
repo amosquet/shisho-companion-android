@@ -3,6 +3,7 @@ package com.example.myapplication.data
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -13,15 +14,57 @@ import com.example.myapplication.BuildConfig
 class ReadingListRepository(
     private val client: HttpClient,
     private val dao: ReadingListDao,
-    private val baseUrl: String = BuildConfig.POCKETBASE_URL
+    private val baseUrl: String = BuildConfig.POCKETBASE_URL,
+    private val shishoApiUrl: String = BuildConfig.SHISHO_API_URL
 ) {
     private val collectionName = "books"
     var authToken: String? = null
     var userId: String? = null
+    var userEmail: String? = null
 
-    suspend fun requestPin(discordId: String): Result<Unit> {
+    suspend fun loginWithEmail(email: String, password: String): Result<Unit> {
         return try {
-            val response: io.ktor.client.statement.HttpResponse = client.post("$baseUrl/api/auth/request-pin") {
+            val response: io.ktor.client.statement.HttpResponse = client.post("$baseUrl/api/collections/shisho_users/auth-with-password") {
+                contentType(ContentType.Application.Json)
+                setBody(LoginRequest(email, password))
+            }
+            if (response.status.isSuccess()) {
+                val authResponse: AuthResponse = response.body()
+                authToken = authResponse.token
+                userId = authResponse.record.id
+                userEmail = email
+                Result.success(Unit)
+            } else {
+                val errorBody = response.bodyAsText()
+                Result.failure(Exception("Login failed: ${response.status.value} - $errorBody"))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    suspend fun registerWithEmail(email: String, password: String): Result<Unit> {
+        return try {
+            val response: io.ktor.client.statement.HttpResponse = client.post("$baseUrl/api/collections/shisho_users/records") {
+                contentType(ContentType.Application.Json)
+                setBody(RegisterUserRequest(email, password, password))
+            }
+            if (response.status.isSuccess()) {
+                loginWithEmail(email, password)
+            } else {
+                val errorBody = response.bodyAsText()
+                Result.failure(Exception("Failed to register: ${response.status.value} - $errorBody"))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Result.failure(e)
+        }
+    }
+
+    suspend fun requestDiscordPin(discordId: String): Result<Unit> {
+        return try {
+            val response: io.ktor.client.statement.HttpResponse = client.post("$shishoApiUrl/api/auth/request-pin") {
                 contentType(ContentType.Application.Json)
                 setBody(RequestPinRequest(discordId))
             }
@@ -36,32 +79,20 @@ class ReadingListRepository(
         }
     }
 
-    suspend fun verifyPin(discordId: String, pin: String): Result<Unit> {
+    suspend fun linkDiscord(discordId: String, pin: String): Result<Unit> {
         return try {
-            val response: AuthResponse = client.post("$baseUrl/api/auth/verify-pin") {
+            val uid = userId
+            if (uid == null) {
+                return Result.failure(Exception("Not logged in to PocketBase"))
+            }
+            val response: io.ktor.client.statement.HttpResponse = client.post("$shishoApiUrl/api/auth/link-discord") {
                 contentType(ContentType.Application.Json)
-                setBody(VerifyPinRequest(discordId, pin))
-            }.body()
-            authToken = response.token
-            userId = response.record.id
-            Result.success(Unit)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Result.failure(e)
-        }
-    }
-
-    suspend fun requestEmailLinkPin(email: String): Result<Unit> {
-        return try {
-            val response: io.ktor.client.statement.HttpResponse = client.post("$baseUrl/api/auth/request-email-link") {
-                contentType(ContentType.Application.Json)
-                authToken?.let { header("Authorization", "Bearer $it") }
-                setBody(RequestEmailLinkRequest(email))
+                setBody(LinkDiscordRequest(discordId = discordId, pin = pin, pbUserId = uid))
             }
             if (response.status.isSuccess()) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Failed to request email link PIN"))
+                Result.failure(Exception("Failed to link Discord"))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -69,34 +100,20 @@ class ReadingListRepository(
         }
     }
 
-    suspend fun verifyEmailLinkPin(pin: String): Result<Unit> {
+    suspend fun unlinkDiscord(): Result<Unit> {
         return try {
-            val response: io.ktor.client.statement.HttpResponse = client.post("$baseUrl/api/auth/verify-email-link") {
+            val uid = userId
+            if (uid == null) {
+                return Result.failure(Exception("Not logged in to PocketBase"))
+            }
+            val response: io.ktor.client.statement.HttpResponse = client.post("$shishoApiUrl/api/auth/unlink-discord") {
                 contentType(ContentType.Application.Json)
-                authToken?.let { header("Authorization", "Bearer $it") }
-                setBody(VerifyEmailLinkRequest(pin))
+                setBody(UnlinkDiscordRequest(uid))
             }
             if (response.status.isSuccess()) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception("Failed to verify email link PIN"))
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Result.failure(e)
-        }
-    }
-
-    suspend fun unlinkEmail(): Result<Unit> {
-        return try {
-            val response: io.ktor.client.statement.HttpResponse = client.post("$baseUrl/api/auth/unlink-email") {
-                contentType(ContentType.Application.Json)
-                authToken?.let { header("Authorization", "Bearer $it") }
-            }
-            if (response.status.isSuccess()) {
-                Result.success(Unit)
-            } else {
-                Result.failure(Exception("Failed to unlink email"))
+                Result.failure(Exception("Failed to unlink Discord"))
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -271,7 +288,8 @@ class ReadingListRepository(
 
     suspend fun getMe(): Result<UserMeResponse> {
         return try {
-            val response: UserMeResponse = client.get("$baseUrl/api/users/me") {
+            val uid = userId ?: return Result.failure(Exception("Not logged in"))
+            val response: UserMeResponse = client.get("$baseUrl/api/collections/shisho_users/records/$uid") {
                 authToken?.let { header("Authorization", "Bearer $it") }
             }.body()
             Result.success(response)
@@ -283,11 +301,12 @@ class ReadingListRepository(
 
     suspend fun updatePreferences(preferences: Preferences): Result<UserMeResponse> {
         return try {
+            val uid = userId ?: return Result.failure(Exception("Not logged in"))
             val req = UpdatePreferencesRequest(companion = preferences.companion, general = preferences.general)
-            val response: UserMeResponse = client.patch("$baseUrl/api/users/me/preferences") {
+            val response: UserMeResponse = client.patch("$baseUrl/api/collections/shisho_users/records/$uid") {
                 contentType(ContentType.Application.Json)
                 authToken?.let { header("Authorization", "Bearer $it") }
-                setBody(req)
+                setBody(UpdateUserPreferencesPayload(req))
             }.body()
             Result.success(response)
         } catch (e: Exception) {

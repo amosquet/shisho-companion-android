@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myapplication.data.AppDatabase
 import com.example.myapplication.data.ReadingListRepository
+import com.example.myapplication.data.NoteRepository
+import com.example.myapplication.data.ReminderRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +16,8 @@ import android.content.SharedPreferences
 
 class LoginViewModel(
     private val repository: ReadingListRepository,
+    private val noteRepository: NoteRepository,
+    private val reminderRepository: ReminderRepository,
     private val database: AppDatabase,
     private val sharedPrefs: SharedPreferences
 ) : ViewModel() {
@@ -27,57 +31,83 @@ class LoginViewModel(
         if (!savedToken.isNullOrBlank() && !savedUserId.isNullOrBlank()) {
             repository.authToken = savedToken
             repository.userId = savedUserId
+            noteRepository.authToken = savedToken
+            noteRepository.userId = savedUserId
+            reminderRepository.authToken = savedToken
+            reminderRepository.userId = savedUserId
             _uiState.value = LoginUiState.Success
+        } else if (sharedPrefs.getBoolean("IS_GUEST", false)) {
+            _uiState.value = LoginUiState.Guest
         }
     }
 
-    fun requestPin(discordId: String) {
+    fun login(email: String, pin: String) {
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            val result = repository.requestPin(discordId)
+            val result = repository.loginWithEmail(email, pin)
             if (result.isSuccess) {
-                _uiState.value = LoginUiState.PinRequested(discordId)
+                onLoginSuccess()
             } else {
-                _uiState.value = LoginUiState.Error(result.exceptionOrNull()?.message ?: "Unknown error")
+                _uiState.value = LoginUiState.Error(result.exceptionOrNull()?.message ?: "Login failed")
             }
         }
     }
 
-    fun verifyPin(discordId: String, pin: String) {
+    fun register(email: String, pin: String) {
         viewModelScope.launch {
-            _uiState.value = LoginUiState.PinRequested(discordId, isVerifying = true)
-            val result = repository.verifyPin(discordId, pin)
+            _uiState.value = LoginUiState.Loading
+            val result = repository.registerWithEmail(email, pin)
             if (result.isSuccess) {
-                val userId = repository.userId ?: ""
-                val token = repository.authToken ?: ""
-                
-                // Fetch preferences
-                val meResult = repository.getMe()
-                if (meResult.isSuccess) {
-                    val me = meResult.getOrNull()
-                    val prefs = me?.preferences
-                    prefs?.let {
-                        sharedPrefs.edit()
-                            .putString("THEME_PREFERENCE", it.companion.theme)
-                            .putBoolean("USE_24_HOUR_TIME", it.general.use24HourTime)
-                            .apply()
-                    }
-                    sharedPrefs.edit().putString("USER_EMAIL", me?.email ?: "").apply()
-                }
-                
-                sharedPrefs.edit()
-                    .putString("TOKEN", token)
-                    .putString("USER_ID", userId)
-                    .apply()
-                _uiState.value = LoginUiState.Success
+                onLoginSuccess()
             } else {
-                _uiState.value = LoginUiState.PinRequested(
-                    discordId = discordId,
-                    isVerifying = false,
-                    verifyError = result.exceptionOrNull()?.message ?: "Invalid PIN"
-                )
+                _uiState.value = LoginUiState.Error(result.exceptionOrNull()?.message ?: "Registration failed")
             }
         }
+    }
+
+    private suspend fun onLoginSuccess() {
+        val userId = repository.userId ?: ""
+        val token = repository.authToken ?: ""
+        
+        noteRepository.authToken = token
+        noteRepository.userId = userId
+        reminderRepository.authToken = token
+        reminderRepository.userId = userId
+        
+        // Fetch preferences
+        val meResult = repository.getMe()
+        if (meResult.isSuccess) {
+            val me = meResult.getOrNull()
+            val prefs = me?.preferences
+            prefs?.let {
+                sharedPrefs.edit()
+                    .putString("THEME_PREFERENCE", it.companion.theme)
+                    .putString("TIME_FORMAT_PREFERENCE", it.general.timeFormat)
+                    .apply()
+            }
+            sharedPrefs.edit().putString("DISCORD_ID", me?.discordId ?: "").apply()
+        }
+        
+        val email = repository.userEmail ?: ""
+
+        sharedPrefs.edit()
+            .putString("TOKEN", token)
+            .putString("USER_ID", userId)
+            .putString("USER_EMAIL", email)
+            .putBoolean("IS_GUEST", false)
+            .apply()
+            
+        // Sync local data created as guest to pocketbase
+        repository.sync()
+        noteRepository.sync()
+        reminderRepository.sync()
+        
+        _uiState.value = LoginUiState.Success
+    }
+    
+    fun continueAsGuest() {
+        sharedPrefs.edit().putBoolean("IS_GUEST", true).apply()
+        _uiState.value = LoginUiState.Guest
     }
 
     fun logout() {
@@ -87,6 +117,10 @@ class LoginViewModel(
         sharedPrefs.edit().clear().apply()
         repository.authToken = null
         repository.userId = null
+        noteRepository.authToken = null
+        noteRepository.userId = null
+        reminderRepository.authToken = null
+        reminderRepository.userId = null
         _uiState.value = LoginUiState.Idle
     }
 }
@@ -94,11 +128,7 @@ class LoginViewModel(
 sealed class LoginUiState {
     object Idle : LoginUiState()
     object Loading : LoginUiState()
-    data class PinRequested(
-        val discordId: String,
-        val isVerifying: Boolean = false,
-        val verifyError: String? = null
-    ) : LoginUiState()
     object Success : LoginUiState()
+    object Guest : LoginUiState()
     data class Error(val message: String) : LoginUiState()
 }

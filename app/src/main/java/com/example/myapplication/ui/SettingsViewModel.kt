@@ -14,77 +14,80 @@ class SettingsViewModel(
     private val sharedPrefs: SharedPreferences
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<EmailLinkUiState>(EmailLinkUiState.Idle)
-    val uiState: StateFlow<EmailLinkUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow<DiscordLinkUiState>(DiscordLinkUiState.Idle)
+    val uiState: StateFlow<DiscordLinkUiState> = _uiState.asStateFlow()
 
-    private val _linkedEmail = MutableStateFlow<String>(sharedPrefs.getString("USER_EMAIL", "") ?: "")
-    val linkedEmail: StateFlow<String> = _linkedEmail.asStateFlow()
+    private val _linkedDiscordId = MutableStateFlow<String>(sharedPrefs.getString("DISCORD_ID", "") ?: "")
+    val linkedDiscordId: StateFlow<String> = _linkedDiscordId.asStateFlow()
 
     init {
         viewModelScope.launch {
             val me = repository.getMe()
             if (me.isSuccess) {
-                val fetchedEmail = me.getOrNull()?.email ?: ""
-                _linkedEmail.value = fetchedEmail
-                sharedPrefs.edit().putString("USER_EMAIL", fetchedEmail).apply()
+                val fetchedDiscordId = me.getOrNull()?.discordId ?: ""
+                _linkedDiscordId.value = fetchedDiscordId
+                sharedPrefs.edit().putString("DISCORD_ID", fetchedDiscordId).apply()
             }
         }
     }
 
-    fun requestEmailLink(email: String) {
+    fun requestDiscordPin(discordId: String) {
         viewModelScope.launch {
-            _uiState.value = EmailLinkUiState.Loading
-            val result = repository.requestEmailLinkPin(email)
+            _uiState.value = DiscordLinkUiState.Loading
+            val result = repository.requestDiscordPin(discordId)
             if (result.isSuccess) {
-                _uiState.value = EmailLinkUiState.PinRequested(email)
+                _uiState.value = DiscordLinkUiState.PinRequested(discordId)
             } else {
-                _uiState.value = EmailLinkUiState.Error(result.exceptionOrNull()?.message ?: "Failed to request PIN")
+                _uiState.value = DiscordLinkUiState.Error(result.exceptionOrNull()?.message ?: "Unknown error")
             }
         }
     }
 
-    fun verifyEmailLink(pin: String) {
+    fun verifyDiscordPin(discordId: String, pin: String) {
         viewModelScope.launch {
-            _uiState.value = EmailLinkUiState.Loading
-            val result = repository.verifyEmailLinkPin(pin)
+            _uiState.value = DiscordLinkUiState.PinRequested(discordId, isVerifying = true)
+            val result = repository.linkDiscord(discordId, pin)
             if (result.isSuccess) {
-                _uiState.value = EmailLinkUiState.Success
-                // refresh linked email
-                val me = repository.getMe()
-                if (me.isSuccess) {
-                    val newEmail = me.getOrNull()?.email ?: ""
-                    _linkedEmail.value = newEmail
-                    sharedPrefs.edit().putString("USER_EMAIL", newEmail).apply()
-                }
+                _linkedDiscordId.value = discordId
+                sharedPrefs.edit().putString("DISCORD_ID", discordId).apply()
+                _uiState.value = DiscordLinkUiState.Success
             } else {
-                _uiState.value = EmailLinkUiState.Error(result.exceptionOrNull()?.message ?: "Invalid PIN")
+                _uiState.value = DiscordLinkUiState.PinRequested(
+                    discordId = discordId,
+                    isVerifying = false,
+                    verifyError = result.exceptionOrNull()?.message ?: "Invalid PIN"
+                )
             }
         }
     }
 
-    fun unlinkEmail() {
+    fun unlinkDiscord() {
         viewModelScope.launch {
-            _uiState.value = EmailLinkUiState.Loading
-            val result = repository.unlinkEmail()
+            _uiState.value = DiscordLinkUiState.Loading
+            val result = repository.unlinkDiscord()
             if (result.isSuccess) {
-                _linkedEmail.value = ""
-                sharedPrefs.edit().putString("USER_EMAIL", "").apply()
-                _uiState.value = EmailLinkUiState.Idle
+                _linkedDiscordId.value = ""
+                sharedPrefs.edit().putString("DISCORD_ID", "").apply()
+                _uiState.value = DiscordLinkUiState.Idle
             } else {
-                _uiState.value = EmailLinkUiState.Error(result.exceptionOrNull()?.message ?: "Failed to unlink email")
+                _uiState.value = DiscordLinkUiState.Error(result.exceptionOrNull()?.message ?: "Failed to unlink Discord")
             }
         }
     }
 
     fun resetState() {
-        _uiState.value = EmailLinkUiState.Idle
+        _uiState.value = DiscordLinkUiState.Idle
     }
 }
 
-sealed class EmailLinkUiState {
-    object Idle : EmailLinkUiState()
-    object Loading : EmailLinkUiState()
-    data class PinRequested(val email: String) : EmailLinkUiState()
-    object Success : EmailLinkUiState()
-    data class Error(val message: String) : EmailLinkUiState()
+sealed class DiscordLinkUiState {
+    object Idle : DiscordLinkUiState()
+    object Loading : DiscordLinkUiState()
+    data class PinRequested(
+        val discordId: String,
+        val isVerifying: Boolean = false,
+        val verifyError: String? = null
+    ) : DiscordLinkUiState()
+    object Success : DiscordLinkUiState()
+    data class Error(val message: String) : DiscordLinkUiState()
 }

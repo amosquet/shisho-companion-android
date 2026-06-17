@@ -13,6 +13,7 @@ if (envFile.exists()) {
     envProps.load(envFile.inputStream())
 }
 val pocketbaseUrl = envProps.getProperty("POCKETBASE_URL") ?: "http://10.0.2.2:8090"
+val shishoApiUrl = envProps.getProperty("SHISHO_API_URL") ?: "https://shisho.amcloud.dev"
 
 
 android {
@@ -31,6 +32,7 @@ android {
         versionName = "1.0"
         
         buildConfigField("String", "POCKETBASE_URL", "\"${pocketbaseUrl}\"")
+        buildConfigField("String", "SHISHO_API_URL", "\"${shishoApiUrl}\"")
     }
 
     buildTypes {

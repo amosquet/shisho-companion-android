@@ -57,13 +57,10 @@ data class VerifyPinRequest(
 )
 
 @Serializable
-data class RequestEmailLinkRequest(
-    val email: String
-)
-
-@Serializable
-data class VerifyEmailLinkRequest(
-    val pin: String
+data class LinkDiscordRequest(
+    @SerialName("discord_id") val discordId: String,
+    val pin: String,
+    @SerialName("pb_user_id") val pbUserId: String
 )
 
 @Serializable
@@ -119,13 +116,13 @@ data class CreateReminderRequest(
 
 @Serializable
 data class CompanionPreferences(
-    val theme: String = "LIGHT"
+    val theme: String = "SYSTEM"
 )
 
 @Serializable
 data class GeneralPreferences(
     val language: String = "en",
-    @SerialName("use_24_hour_time") val use24HourTime: Boolean = false
+    @SerialName("time_format") val timeFormat: String = "SYSTEM"
 )
 
 @Serializable
@@ -145,4 +142,29 @@ data class UserMeResponse(
 data class UpdatePreferencesRequest(
     val companion: CompanionPreferences? = null,
     val general: GeneralPreferences? = null
+)
+
+@Serializable
+data class RegisterUserRequest(
+    val email: String,
+    val password: String,
+    val passwordConfirm: String,
+    @SerialName("discord_id") val discordId: String = "",
+    val preferences: Preferences = Preferences()
+)
+
+@Serializable
+data class UpdateUserPreferencesPayload(
+    val preferences: UpdatePreferencesRequest
+)
+
+@Serializable
+data class LoginRequest(
+    val identity: String,
+    val password: String
+)
+
+@Serializable
+data class UnlinkDiscordRequest(
+    @SerialName("pb_user_id") val pbUserId: String
 )

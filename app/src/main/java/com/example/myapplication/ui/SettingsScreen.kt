@@ -26,32 +26,31 @@ import com.example.myapplication.data.Announcement
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    discordId: String,
+    userEmail: String,
     themePreference: String,
     onThemePreferenceChanged: (String) -> Unit,
-    use24HourTime: Boolean,
-    on24HourTimeToggle: (Boolean) -> Unit,
-    linkedEmail: String,
-    emailLinkUiState: EmailLinkUiState,
-    onRequestEmailLink: (String) -> Unit,
-    onVerifyEmailLink: (String) -> Unit,
-    onUnlinkEmail: () -> Unit,
-    onResetEmailLinkState: () -> Unit,
+    timeFormatPreference: String,
+    onTimeFormatPreferenceChanged: (String) -> Unit,
+    linkedDiscordId: String,
+    discordLinkUiState: DiscordLinkUiState,
+    onRequestDiscordLink: (String) -> Unit,
+    onVerifyDiscordLink: (String) -> Unit,
+    onUnlinkDiscord: () -> Unit,
+    onResetDiscordLinkState: () -> Unit,
     announcements: List<Announcement>,
-    onMarkAnnouncementsRead: () -> Unit,
     onLogout: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    var showLogoutDialog by remember { mutableStateOf(false) }
-    var showUnlinkDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberScrollState()
+    val uriHandler = LocalUriHandler.current
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
+                title = { Text("Settings") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -66,10 +65,11 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 16.dp)
+                .verticalScroll(scrollState)
         ) {
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = "Account",
                 style = MaterialTheme.typography.titleLarge,
@@ -77,150 +77,17 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
             )
             
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Logged in as",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                    Text(
-                        text = discordId.ifEmpty { "Unknown Discord User" },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
+            Text("Logged in as: ${if (userEmail.isNotBlank()) userEmail else "Guest"}", style = MaterialTheme.typography.bodyMedium)
 
             Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Email",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-            )
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    if (linkedEmail.isNotEmpty()) {
-                        Text(
-                            text = linkedEmail,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { showUnlinkDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error,
-                                contentColor = MaterialTheme.colorScheme.onError
-                            )
-                        ) {
-                            Text("Unlink")
-                        }
-                    } else {
-                        var emailInput by remember { mutableStateOf("") }
-                        var pinInput by remember { mutableStateOf("") }
-
-                        when (emailLinkUiState) {
-                            is EmailLinkUiState.Idle, is EmailLinkUiState.Error -> {
-                                OutlinedTextField(
-                                    value = emailInput,
-                                    onValueChange = { emailInput = it },
-                                    label = { Text("Email Address") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = { onRequestEmailLink(emailInput) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = emailInput.isNotBlank()
-                                ) {
-                                    Text("Send Verification Code")
-                                }
-                                if (emailLinkUiState is EmailLinkUiState.Error) {
-                                    Text(
-                                        text = emailLinkUiState.message,
-                                        color = MaterialTheme.colorScheme.error,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    )
-                                }
-                            }
-                            is EmailLinkUiState.Loading -> {
-                                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                            }
-                            is EmailLinkUiState.PinRequested -> {
-                                Text(
-                                    text = "Verification code sent to ${emailLinkUiState.email}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                OutlinedTextField(
-                                    value = pinInput,
-                                    onValueChange = { pinInput = it },
-                                    label = { Text("Verification Code") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = { onVerifyEmailLink(pinInput) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    enabled = pinInput.isNotBlank()
-                                ) {
-                                    Text("Verify")
-                                }
-                            }
-                            is EmailLinkUiState.Success -> {
-                                Text(
-                                    text = "Email linked successfully!",
-                                    color = MaterialTheme.colorScheme.primary,
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Button(
-                                    onClick = onResetEmailLinkState,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("Link Another Email")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Companion",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-            )
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column {
-                    var themeDropdownExpanded by remember { mutableStateOf(false) }
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -229,14 +96,29 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        var themeDropdownExpanded by remember { mutableStateOf(false) }
                         Box {
                             TextButton(onClick = { themeDropdownExpanded = true }) {
-                                Text(themePreference)
+                                Text(
+                                    text = when (themePreference) {
+                                        "LIGHT" -> "Light"
+                                        "DARK" -> "Dark"
+                                        "OLED" -> "OLED"
+                                        else -> "System"
+                                    }
+                                )
                             }
                             DropdownMenu(
                                 expanded = themeDropdownExpanded,
                                 onDismissRequest = { themeDropdownExpanded = false }
                             ) {
+                                DropdownMenuItem(
+                                    text = { Text("System Default") },
+                                    onClick = {
+                                        onThemePreferenceChanged("SYSTEM")
+                                        themeDropdownExpanded = false
+                                    }
+                                )
                                 DropdownMenuItem(
                                     text = { Text("Light") },
                                     onClick = {
@@ -265,6 +147,8 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = "General",
@@ -272,126 +156,178 @@ fun SettingsScreen(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
             )
-
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                Column {
+                Column(modifier = Modifier.padding(16.dp)) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "24-Hour Time",
+                            text = "Time Format",
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Switch(
-                            checked = use24HourTime,
-                            onCheckedChange = on24HourTimeToggle
-                        )
+                        var timeFormatDropdownExpanded by remember { mutableStateOf(false) }
+                        Box {
+                            TextButton(onClick = { timeFormatDropdownExpanded = true }) {
+                                Text(
+                                    text = when (timeFormatPreference) {
+                                        "12_HOUR" -> "12-Hour"
+                                        "24_HOUR" -> "24-Hour"
+                                        else -> "System"
+                                    }
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = timeFormatDropdownExpanded,
+                                onDismissRequest = { timeFormatDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("System Default") },
+                                    onClick = {
+                                        onTimeFormatPreferenceChanged("SYSTEM")
+                                        timeFormatDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("12-Hour") },
+                                    onClick = {
+                                        onTimeFormatPreferenceChanged("12_HOUR")
+                                        timeFormatDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("24-Hour") },
+                                    onClick = {
+                                        onTimeFormatPreferenceChanged("24_HOUR")
+                                        timeFormatDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text("Discord Integration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (linkedDiscordId.isNotBlank()) {
+                Text("Linked to Discord ID: $linkedDiscordId", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = onUnlinkDiscord,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Unlink Discord")
+                }
+            } else {
+                Text("Link your Discord account to receive reminders and manage notes via the Shisho bot.", style = MaterialTheme.typography.bodySmall)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                var inputDiscordId by remember { mutableStateOf("") }
+                var inputPin by remember { mutableStateOf("") }
+
+                when (discordLinkUiState) {
+                    is DiscordLinkUiState.Idle -> {
+                        OutlinedTextField(
+                            value = inputDiscordId,
+                            onValueChange = { inputDiscordId = it },
+                            label = { Text("Discord User ID") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { onRequestDiscordLink(inputDiscordId) },
+                            enabled = inputDiscordId.isNotBlank()
+                        ) {
+                            Text("Request PIN via DM")
+                        }
+                    }
+                    is DiscordLinkUiState.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+                    }
+                    is DiscordLinkUiState.PinRequested -> {
+                        Text("A PIN has been sent to your Discord account.", style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = inputPin,
+                            onValueChange = { inputPin = it },
+                            label = { Text("Enter PIN") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row {
+                            Button(
+                                onClick = { onVerifyDiscordLink(inputPin) },
+                                enabled = inputPin.isNotBlank() && !discordLinkUiState.isVerifying
+                            ) {
+                                Text("Verify PIN")
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            TextButton(onClick = onResetDiscordLinkState) {
+                                Text("Cancel")
+                            }
+                        }
+                        if (discordLinkUiState.verifyError != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(discordLinkUiState.verifyError, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    is DiscordLinkUiState.Success -> {
+                        LaunchedEffect(Unit) {
+                            onResetDiscordLinkState()
+                        }
+                    }
+                    is DiscordLinkUiState.Error -> {
+                        Text(discordLinkUiState.message, color = MaterialTheme.colorScheme.error)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(onClick = onResetDiscordLinkState) {
+                            Text("Try Again")
+                        }
+                    }
+                }
+            }
+
+            if (announcements.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(24.dp))
+                Divider()
+                Spacer(modifier = Modifier.height(24.dp))
+                Text("Announcements", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                announcements.forEach { ann ->
+                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(ann.timestamp, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(ann.message, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             Button(
-                onClick = { showLogoutDialog = true },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
-                )
+                onClick = onLogout,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Log Out")
+                Text("Logout")
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            val uriHandler = LocalUriHandler.current
-            TextButton(
-                onClick = { uriHandler.openUri("https://status.amcloud.dev") }
-            ) {
-                Text("Check Server Status")
-            }
-
-            val latestAnnouncement = announcements.lastOrNull()
-            if (latestAnnouncement != null) {
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Text(
-                    text = "Announcement",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
-                )
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = latestAnnouncement.message,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer
-                        )
-                    }
-                }
-                
-                LaunchedEffect(latestAnnouncement.id) {
-                    onMarkAnnouncementsRead()
-                }
-            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
         }
-    }
-
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text("Log Out") },
-            text = { Text("Are you sure you want to log out?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showLogoutDialog = false
-                        onLogout()
-                    }
-                ) {
-                    Text("Log Out", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
-    }
-
-    if (showUnlinkDialog) {
-        AlertDialog(
-            onDismissRequest = { showUnlinkDialog = false },
-            title = { Text("Unlink Email") },
-            text = { Text("Are you sure you want to unlink your email address?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showUnlinkDialog = false
-                        onUnlinkEmail()
-                    }
-                ) {
-                    Text("Unlink", color = MaterialTheme.colorScheme.error)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showUnlinkDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
     }
 }

@@ -71,6 +71,7 @@ import com.example.myapplication.ui.RemindersListScreen
 import com.example.myapplication.ui.RemindersViewModel
 import com.example.myapplication.ui.SettingsScreen
 import com.example.myapplication.ui.SettingsViewModel
+import com.example.myapplication.ui.DiscordLinkUiState
 import com.example.myapplication.ui.ThemeViewModel
 import com.example.myapplication.ui.AnnouncementsViewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
@@ -162,7 +163,7 @@ class MainActivity : ComponentActivity() {
                 }
                 if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
                     @Suppress("UNCHECKED_CAST")
-                    return LoginViewModel(repository, database, sharedPrefs) as T
+                    return LoginViewModel(repository, noteRepository, reminderRepository, database, sharedPrefs) as T
                 }
                 if (modelClass.isAssignableFrom(ThemeViewModel::class.java)) {
                     @Suppress("UNCHECKED_CAST")
@@ -200,7 +201,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeViewModel: ThemeViewModel = viewModel(factory = viewModelFactory)
             val themePreference by themeViewModel.themePreference.collectAsState()
-            val use24HourTime by themeViewModel.use24HourTime.collectAsState()
+            val timeFormatPreference by themeViewModel.timeFormatPreference.collectAsState()
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val use24HourTime = when (timeFormatPreference) {
+                "24_HOUR" -> true
+                "12_HOUR" -> false
+                else -> android.text.format.DateFormat.is24HourFormat(context)
+            }
 
             MyApplicationTheme(themePreference = themePreference) {
                 Surface(
@@ -376,22 +383,18 @@ class MainActivity : ComponentActivity() {
                             composable("login") {
                                 LoginScreen(
                                     uiState = loginUiState,
-                                    onRequestPin = { discordId -> loginViewModel.requestPin(discordId) },
-                                    onVerifyPin = { discordId, pin -> loginViewModel.verifyPin(discordId, pin) },
+                                    onLogin = { email, pin -> loginViewModel.login(email, pin) },
+                                    onRegister = { email, pin -> loginViewModel.register(email, pin) },
+                                    onContinueAsGuest = { loginViewModel.continueAsGuest() },
                                     onNavigateToList = { 
-                                        noteRepository.authToken = repository.authToken
-                                        noteRepository.userId = sharedPrefs.getString("USER_ID", "")
-                                        reminderRepository.authToken = repository.authToken
-                                        reminderRepository.userId = sharedPrefs.getString("USER_ID", "")
-                                        
                                         themeViewModel.reloadPreferences()
                                         
                                         navController.navigate("notes") {
                                             popUpTo("login") { inclusive = true }
                                         }
                                         if (intentAction.value == "com.example.myapplication.ADD_NOTE") {
-                                            navController.navigate("add_note")
                                             intentAction.value = null
+                                            navController.navigate("add_note")
                                         }
                                         // listViewModel.syncReadingList()
                                         notesViewModel.syncNotes()
@@ -514,22 +517,21 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("settings") {
                                 val settingsViewModel: SettingsViewModel = viewModel(factory = viewModelFactory)
-                                val emailLinkUiState by settingsViewModel.uiState.collectAsState()
-                                val linkedEmail by settingsViewModel.linkedEmail.collectAsState()
+                                val discordLinkUiState by settingsViewModel.uiState.collectAsState()
+                                val linkedDiscordId by settingsViewModel.linkedDiscordId.collectAsState()
                                 SettingsScreen(
-                                    discordId = sharedPrefs.getString("USER_ID", "") ?: "",
+                                    userEmail = sharedPrefs.getString("USER_EMAIL", "") ?: "",
                                     themePreference = themePreference,
                                     onThemePreferenceChanged = { themeViewModel.setThemePreference(it) },
-                                    use24HourTime = use24HourTime,
-                                    on24HourTimeToggle = { themeViewModel.setUse24HourTime(it) },
-                                    linkedEmail = linkedEmail,
-                                    emailLinkUiState = emailLinkUiState,
-                                    onRequestEmailLink = { email -> settingsViewModel.requestEmailLink(email) },
-                                    onVerifyEmailLink = { pin -> settingsViewModel.verifyEmailLink(pin) },
-                                    onUnlinkEmail = { settingsViewModel.unlinkEmail() },
-                                    onResetEmailLinkState = { settingsViewModel.resetState() },
+                                    timeFormatPreference = timeFormatPreference,
+                                    onTimeFormatPreferenceChanged = { themeViewModel.setTimeFormatPreference(it) },
+                                    linkedDiscordId = linkedDiscordId,
+                                    discordLinkUiState = discordLinkUiState,
+                                    onRequestDiscordLink = { id -> settingsViewModel.requestDiscordPin(id) },
+                                    onVerifyDiscordLink = { pin -> settingsViewModel.verifyDiscordPin(linkedDiscordId.ifBlank { (discordLinkUiState as? DiscordLinkUiState.PinRequested)?.discordId ?: "" }, pin) },
+                                    onUnlinkDiscord = { settingsViewModel.unlinkDiscord() },
+                                    onResetDiscordLinkState = { settingsViewModel.resetState() },
                                     announcements = announcements,
-                                    onMarkAnnouncementsRead = { announcementsViewModel.markAsRead() },
                                     onLogout = {
                                         loginViewModel.logout()
                                         navController.navigate("login") {
