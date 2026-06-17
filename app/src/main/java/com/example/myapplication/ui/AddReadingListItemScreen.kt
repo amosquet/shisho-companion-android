@@ -12,6 +12,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.myapplication.data.CreateReadingListItemRequest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.Alignment
+import coil.compose.AsyncImage
+import android.net.Uri
+import android.provider.OpenableColumns
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,6 +33,14 @@ fun AddReadingListItemScreen(
     var startDate by remember { mutableStateOf("") }
     var endDate by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var coverUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
+    
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        coverUri = uri
+    }
 
     Scaffold(
         topBar = {
@@ -74,7 +89,7 @@ fun AddReadingListItemScreen(
                 singleLine = true
             )
             var expanded by remember { mutableStateOf(false) }
-            val statusOptions = listOf("unread", "reading", "finished")
+            val statusOptions = listOf("planned", "reading", "read", "dropped")
 
             ExposedDropdownMenuBox(
                 expanded = expanded,
@@ -85,7 +100,7 @@ fun AddReadingListItemScreen(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.status)) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                 )
@@ -127,9 +142,47 @@ fun AddReadingListItemScreen(
                 maxLines = 5
             )
 
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(onClick = {
+                    photoPickerLauncher.launch(
+                        androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                }) {
+                    Text("Select Cover Image")
+                }
+                
+                coverUri?.let { uri ->
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = "Cover Image Preview",
+                        modifier = Modifier.size(64.dp)
+                    )
+                }
+            }
+
             Button(
                 onClick = {
                     if (title.isNotBlank()) {
+                        var coverBytes: ByteArray? = null
+                        var coverFilename: String? = null
+                        coverUri?.let { uri ->
+                            context.contentResolver.openInputStream(uri)?.use { stream ->
+                                coverBytes = stream.readBytes()
+                            }
+                            context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                                if (cursor.moveToFirst()) {
+                                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                                    if (nameIndex != -1) {
+                                        coverFilename = cursor.getString(nameIndex)
+                                    }
+                                }
+                            }
+                        }
+
                         val req = CreateReadingListItemRequest(
                             title = title,
                             url = "",
@@ -138,7 +191,9 @@ fun AddReadingListItemScreen(
                             status = status,
                             isbn = isbn,
                             startDate = startDate,
-                            endDate = endDate
+                            endDate = endDate,
+                            coverBytes = coverBytes,
+                            coverFilename = coverFilename
                         )
                         onSave(req)
                         onNavigateBack()

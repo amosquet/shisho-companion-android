@@ -15,6 +15,7 @@ data class PocketBaseListResponse<T>(
 @Serializable
 data class ReadingListItem(
     val id: String = "",
+    @SerialName("user_id") val userId: String = "",
     val title: String = "",
     val url: String = "",
     val description: String = "",
@@ -34,6 +35,7 @@ data class ReadingListItem(
 
 @Serializable
 data class CreateReadingListItemRequest(
+    @SerialName("user_id") val userId: String = "",
     val title: String,
     val url: String,
     val description: String = "",
@@ -42,7 +44,9 @@ data class CreateReadingListItemRequest(
     val status: String = "",
     val isbn: String = "",
     val startDate: String = "",
-    val endDate: String = ""
+    val endDate: String = "",
+    @kotlinx.serialization.Transient var coverBytes: ByteArray? = null,
+    @kotlinx.serialization.Transient var coverFilename: String? = null
 )
 
 @Serializable

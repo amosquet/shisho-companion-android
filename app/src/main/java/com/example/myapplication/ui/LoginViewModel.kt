@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 class LoginViewModel(
     private val repository: ReadingListRepository,
@@ -80,23 +81,23 @@ class LoginViewModel(
             val me = meResult.getOrNull()
             val prefs = me?.preferences
             prefs?.let {
-                sharedPrefs.edit()
-                    .putString("THEME_PREFERENCE", it.companion.theme)
-                    .putString("TIME_FORMAT_PREFERENCE", it.general.timeFormat)
-                    .putBoolean("SEND_REMINDERS_TO_DISCORD", it.general.sendRemindersToDiscord)
-                    .apply()
+                sharedPrefs.edit {
+                    putString("THEME_PREFERENCE", it.companion.theme)
+                        .putString("TIME_FORMAT_PREFERENCE", it.general.timeFormat)
+                        .putBoolean("SEND_REMINDERS_TO_DISCORD", it.general.sendRemindersToDiscord)
+                }
             }
-            sharedPrefs.edit().putString("DISCORD_ID", me?.discordId ?: "").apply()
+            sharedPrefs.edit { putString("DISCORD_ID", me?.discordId ?: "") }
         }
         
         val email = repository.userEmail ?: ""
 
-        sharedPrefs.edit()
-            .putString("TOKEN", token)
-            .putString("USER_ID", userId)
-            .putString("USER_EMAIL", email)
-            .putBoolean("IS_GUEST", false)
-            .apply()
+        sharedPrefs.edit {
+            putString("TOKEN", token)
+                .putString("USER_ID", userId)
+                .putString("USER_EMAIL", email)
+                .putBoolean("IS_GUEST", false)
+        }
             
         // Sync local data created as guest to pocketbase
         repository.sync()
@@ -107,7 +108,7 @@ class LoginViewModel(
     }
     
     fun continueAsGuest() {
-        sharedPrefs.edit().putBoolean("IS_GUEST", true).apply()
+        sharedPrefs.edit { putBoolean("IS_GUEST", true) }
         _uiState.value = LoginUiState.Guest
     }
 
@@ -115,7 +116,7 @@ class LoginViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             database.clearAllTables()
         }
-        sharedPrefs.edit().clear().apply()
+        sharedPrefs.edit { clear() }
         repository.authToken = null
         repository.userId = null
         noteRepository.authToken = null

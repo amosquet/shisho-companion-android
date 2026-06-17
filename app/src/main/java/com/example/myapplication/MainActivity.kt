@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -268,13 +269,13 @@ class MainActivity : ComponentActivity() {
                                         expanded = expanded,
                                         onDismissRequest = { expanded = false }
                                     ) {
-                                        /* DropdownMenuItem(
+                                        DropdownMenuItem(
                                             text = { Text(stringResource(R.string.add_book)) },
                                             onClick = {
                                                 expanded = false
                                                 navController.navigate("add")
                                             }
-                                        ) */
+                                        )
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.add_note)) },
                                             onClick = {
@@ -296,7 +297,7 @@ class MainActivity : ComponentActivity() {
                         bottomBar = {
                             if (currentDestination in listOf("list", "notes", "reminders")) {
                                 NavigationBar {
-                                    /* NavigationBarItem(
+                                    NavigationBarItem(
                                         icon = { Icon(Icons.Filled.List, contentDescription = stringResource(R.string.reading_list)) },
                                         label = { Text(stringResource(R.string.list_label)) },
                                         selected = currentDestination == "list",
@@ -307,7 +308,7 @@ class MainActivity : ComponentActivity() {
                                                 restoreState = true
                                             }
                                         }
-                                    ) */
+                                    )
                                     NavigationBarItem(
                                         icon = { Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.notes)) },
                                         label = { Text(stringResource(R.string.notes)) },
@@ -399,7 +400,7 @@ class MainActivity : ComponentActivity() {
                                             intentAction.value = null
                                             navController.navigate("add_note")
                                         }
-                                        // listViewModel.syncReadingList()
+                                        listViewModel.syncReadingList()
                                         notesViewModel.syncNotes()
                                         remindersViewModel.syncReminders()
                                     }

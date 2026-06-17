@@ -4,6 +4,7 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -17,10 +18,34 @@ class ReadingListRepository(
     private val baseUrl: String = BuildConfig.POCKETBASE_URL,
     private val shishoApiUrl: String = BuildConfig.SHISHO_API_URL
 ) {
-    private val collectionName = "books"
+    private val collectionName = "shisho_books"
     var authToken: String? = null
     var userId: String? = null
     var userEmail: String? = null
+
+    private fun buildMultipartData(req: CreateReadingListItemRequest): MultiPartFormDataContent {
+        return MultiPartFormDataContent(
+            formData {
+                append("title", req.title)
+                append("user_id", req.userId)
+                append("url", req.url)
+                append("description", req.description)
+                append("author", req.author)
+                append("status", req.status)
+                append("isbn", req.isbn)
+                append("startDate", req.startDate)
+                append("endDate", req.endDate)
+                
+                req.coverBytes?.let { bytes ->
+                    val filename = req.coverFilename ?: "cover.jpg"
+                    append("cover", bytes, Headers.build {
+                        append(HttpHeaders.ContentType, "image/*")
+                        append(HttpHeaders.ContentDisposition, "filename=\"$filename\"")
+                    })
+                }
+            }
+        )
+    }
 
     suspend fun loginWithEmail(email: String, password: String): Result<Unit> {
         return try {
@@ -140,6 +165,7 @@ class ReadingListRepository(
                 
                 ReadingListItem(
                     id = it.id,
+                    userId = it.userId,
                     title = it.title,
                     url = it.url,
                     description = it.description,
@@ -165,6 +191,7 @@ class ReadingListRepository(
             val pendingItems = dao.getPendingSyncItems()
             for (pending in pendingItems) {
                 val createReq = CreateReadingListItemRequest(
+                    userId = pending.userId,
                     title = pending.title,
                     url = pending.url,
                     description = pending.description,
@@ -202,6 +229,7 @@ class ReadingListRepository(
             val entities = response.items.map {
                 ReadingListEntity(
                     id = it.id,
+                    userId = it.userId,
                     title = it.title,
                     url = it.url,
                     description = it.description,
@@ -225,9 +253,24 @@ class ReadingListRepository(
     }
 
     suspend fun addItem(item: CreateReadingListItemRequest) {
+        if (item.coverBytes != null) {
+            try {
+                val finalReq = item.copy(userId = this.userId ?: "")
+                client.post("$baseUrl/api/collections/$collectionName/records") {
+                    authToken?.let { header("Authorization", "Bearer $it") }
+                    setBody(buildMultipartData(finalReq))
+                }
+                sync()
+                return
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        
         val fakeId = "local_" + UUID.randomUUID().toString().replace("-", "")
         val newEntity = ReadingListEntity(
             id = fakeId,
+            userId = this.userId ?: "",
             title = item.title,
             url = item.url,
             description = item.description,
@@ -268,11 +311,19 @@ class ReadingListRepository(
                 ))
             }
         } else {
+            val finalReq = req.copy(userId = this.userId ?: "")
             try {
-                client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
-                    contentType(ContentType.Application.Json)
-                    authToken?.let { header("Authorization", "Bearer $it") }
-                    setBody(req)
+                if (finalReq.coverBytes != null) {
+                    client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
+                        authToken?.let { header("Authorization", "Bearer $it") }
+                        setBody(buildMultipartData(finalReq))
+                    }
+                } else {
+                    client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
+                        contentType(ContentType.Application.Json)
+                        authToken?.let { header("Authorization", "Bearer $it") }
+                        setBody(finalReq)
+                    }
                 }
                 sync()
             } catch (e: Exception) {
