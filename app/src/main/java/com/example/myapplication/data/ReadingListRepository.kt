@@ -65,11 +65,13 @@ class ReadingListRepository(
     suspend fun requestDiscordPin(discordId: String): Result<Unit> {
         return try {
             val uid = userId
-            if (uid == null) {
+            val token = authToken
+            if (uid == null || token == null) {
                 return Result.failure(Exception("Not logged in"))
             }
             val response: io.ktor.client.statement.HttpResponse = client.post("$shishoApiUrl/api/auth/request-pin") {
                 contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer $token")
                 setBody(RequestPinRequest(discordId))
             }
             if (response.status.isSuccess()) {
@@ -86,11 +88,13 @@ class ReadingListRepository(
     suspend fun linkDiscord(discordId: String, pin: String): Result<Unit> {
         return try {
             val uid = userId
-            if (uid == null) {
+            val token = authToken
+            if (uid == null || token == null) {
                 return Result.failure(Exception("Not logged in to PocketBase"))
             }
             val response: io.ktor.client.statement.HttpResponse = client.post("$shishoApiUrl/api/auth/link-discord") {
                 contentType(ContentType.Application.Json)
+                header("Authorization", "Bearer $token")
                 setBody(LinkDiscordRequest(discordId = discordId, pin = pin, pbUserId = uid))
             }
             if (response.status.isSuccess()) {
@@ -106,13 +110,13 @@ class ReadingListRepository(
 
     suspend fun unlinkDiscord(): Result<Unit> {
         return try {
-            val uid = userId
-            if (uid == null) {
+            val token = authToken
+            if (token == null) {
                 return Result.failure(Exception("Not logged in to PocketBase"))
             }
             val response: io.ktor.client.statement.HttpResponse = client.post("$shishoApiUrl/api/auth/unlink-discord") {
                 contentType(ContentType.Application.Json)
-                setBody(UnlinkDiscordRequest(uid))
+                header("Authorization", "Bearer $token")
             }
             if (response.status.isSuccess()) {
                 Result.success(Unit)
