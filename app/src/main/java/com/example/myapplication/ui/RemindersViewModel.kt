@@ -28,11 +28,20 @@ class RemindersViewModel(
     private val _selectedReminderIds = MutableStateFlow<Set<String>>(emptySet())
     val selectedReminderIds: StateFlow<Set<String>> = _selectedReminderIds.asStateFlow()
 
+    private var previousItems = emptyList<ReminderItem>()
+
     init {
         viewModelScope.launch {
             repository.getReminders().collect { items ->
                 _uiState.value = _uiState.value.copy(reminders = items)
                 
+                val currentIds = items.map { it.id }.toSet()
+                val removedItems = previousItems.filter { it.id !in currentIds }
+                
+                removedItems.forEach { item ->
+                    com.example.myapplication.notifications.NotificationHelper.cancelAlarm(application, item.id)
+                }
+
                 items.forEach { item ->
                     if (!item.isSent) {
                         com.example.myapplication.notifications.NotificationHelper.scheduleAlarm(application, item)
@@ -40,6 +49,8 @@ class RemindersViewModel(
                         com.example.myapplication.notifications.NotificationHelper.cancelAlarm(application, item.id)
                     }
                 }
+                
+                previousItems = items
             }
         }
     }

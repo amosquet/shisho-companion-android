@@ -6,6 +6,7 @@ import android.content.Intent
 import com.example.myapplication.data.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class BootReceiver : BroadcastReceiver() {
@@ -17,8 +18,10 @@ class BootReceiver : BroadcastReceiver() {
             val db = AppDatabase.getDatabase(context)
             val dao = db.reminderDao()
             
+            val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
-                dao.getAllReminders().collect { reminders ->
+                try {
+                    val reminders = dao.getAllReminders().first()
                     reminders.forEach { entity ->
                         if (!entity.isSent) {
                             val item = com.example.myapplication.data.ReminderItem(
@@ -33,6 +36,8 @@ class BootReceiver : BroadcastReceiver() {
                             NotificationHelper.scheduleAlarm(context, item)
                         }
                     }
+                } finally {
+                    pendingResult.finish()
                 }
             }
         }
