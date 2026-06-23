@@ -43,6 +43,8 @@ fun SettingsScreen(
     onUnlinkDiscord: () -> Unit,
     onResetDiscordLinkState: () -> Unit,
     announcements: List<Announcement>,
+    splitScreenPreference: Boolean,
+    onSplitScreenPreferenceChanged: (Boolean) -> Unit,
     onLogout: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -276,6 +278,24 @@ fun SettingsScreen(
                                 )
                             }
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.split_screen_large_devices),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Switch(
+                            checked = splitScreenPreference,
+                            onCheckedChange = { onSplitScreenPreferenceChanged(it) }
+                        )
                     }
                 }
             }

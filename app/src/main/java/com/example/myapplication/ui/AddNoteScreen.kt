@@ -27,7 +27,8 @@ import com.example.myapplication.data.CreateNoteRequest
 fun AddNoteScreen(
     userId: String,
     onSave: (CreateNoteRequest) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    isSplitScreen: Boolean = false
 ) {
     var title by remember { mutableStateOf("") }
     var text by remember { mutableStateOf("") }
@@ -45,8 +46,10 @@ fun AddNoteScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.add_note)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    if (!isSplitScreen) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
                 },
                 actions = {

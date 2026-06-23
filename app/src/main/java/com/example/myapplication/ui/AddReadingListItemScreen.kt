@@ -24,7 +24,8 @@ import android.provider.OpenableColumns
 @Composable
 fun AddReadingListItemScreen(
     onSave: (CreateReadingListItemRequest) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    isSplitScreen: Boolean = false
 ) {
     var title by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
@@ -47,8 +48,10 @@ fun AddReadingListItemScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.add_to_reading_list)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    if (!isSplitScreen) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

@@ -17,7 +17,8 @@ fun AddReminderScreen(
     userId: String,
     use24HourTime: Boolean,
     onSave: (CreateReminderRequest) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    isSplitScreen: Boolean = false
 ) {
     var reminderText by remember { mutableStateOf("") }
     var remindAt by remember { mutableStateOf("") } // expecting ISO like 2026-05-24 10:00:00.000Z for now
@@ -27,8 +28,10 @@ fun AddReminderScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.add_reminder)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    if (!isSplitScreen) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
                 }
             )

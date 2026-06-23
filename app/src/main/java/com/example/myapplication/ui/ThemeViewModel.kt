@@ -48,6 +48,9 @@ class ThemeViewModel(
     private val _sendRemindersToDiscordPreference = MutableStateFlow(sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false))
     val sendRemindersToDiscordPreference: StateFlow<Boolean> = _sendRemindersToDiscordPreference.asStateFlow()
 
+    private val _splitScreenPreference = MutableStateFlow(sharedPrefs.getBoolean("SPLIT_SCREEN_ENABLED", true))
+    val splitScreenPreference: StateFlow<Boolean> = _splitScreenPreference.asStateFlow()
+
     fun setThemePreference(theme: String) {
         sharedPrefs.edit().putString("THEME_PREFERENCE", theme).apply()
         _themePreference.value = theme
@@ -57,12 +60,13 @@ class ThemeViewModel(
                 val currentMeResult = repository.getMe()
                 if (currentMeResult.isSuccess) {
                     val me = currentMeResult.getOrNull()
+                    val currentCompanion = me?.preferences?.companion ?: com.example.myapplication.data.CompanionPreferences()
                     val newPrefs = me?.preferences?.copy(
-                        companion = com.example.myapplication.data.CompanionPreferences(theme = theme)
+                        companion = currentCompanion.copy(theme = theme)
+                    ) ?: com.example.myapplication.data.Preferences(
+                        companion = currentCompanion.copy(theme = theme)
                     )
-                    if (newPrefs != null) {
-                        repository.updatePreferences(newPrefs)
-                    }
+                    repository.updatePreferences(newPrefs)
                 }
             }
         }
@@ -94,6 +98,27 @@ class ThemeViewModel(
         _languagePreference.value = lang
     }
 
+    fun setSplitScreenPreference(enabled: Boolean) {
+        sharedPrefs.edit().putBoolean("SPLIT_SCREEN_ENABLED", enabled).apply()
+        _splitScreenPreference.value = enabled
+        
+        viewModelScope.launch {
+            if (!repository.authToken.isNullOrEmpty()) {
+                val currentMeResult = repository.getMe()
+                if (currentMeResult.isSuccess) {
+                    val me = currentMeResult.getOrNull()
+                    val currentCompanion = me?.preferences?.companion ?: com.example.myapplication.data.CompanionPreferences()
+                    val newPrefs = me?.preferences?.copy(
+                        companion = currentCompanion.copy(splitScreen = enabled)
+                    ) ?: com.example.myapplication.data.Preferences(
+                        companion = currentCompanion.copy(splitScreen = enabled)
+                    )
+                    repository.updatePreferences(newPrefs)
+                }
+            }
+        }
+    }
+
     fun setSendRemindersToDiscordPreference(send: Boolean) {
         sharedPrefs.edit().putBoolean("SEND_REMINDERS_TO_DISCORD", send).apply()
         _sendRemindersToDiscordPreference.value = send
@@ -120,5 +145,6 @@ class ThemeViewModel(
         _timeFormatPreference.value = getTimeFormatPreferenceWithMigration(sharedPrefs)
         _sendRemindersToDiscordPreference.value = sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false)
         _languagePreference.value = sharedPrefs.getString("LANGUAGE_PREFERENCE", "SYSTEM") ?: "SYSTEM"
+        _splitScreenPreference.value = sharedPrefs.getBoolean("SPLIT_SCREEN_ENABLED", true)
     }
 }

@@ -45,7 +45,8 @@ fun NoteDetailScreen(
     onDeleteClick: () -> Unit,
     onArchiveClick: () -> Unit,
     onTextUpdate: (String) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    isSplitScreen: Boolean = false
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var enlargedImageUrl by remember { mutableStateOf<String?>(null) }
@@ -56,8 +57,10 @@ fun NoteDetailScreen(
             TopAppBar(
                 title = { Text(item.title) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    if (!isSplitScreen) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
                 },
                 actions = {

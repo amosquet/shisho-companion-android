@@ -85,6 +85,9 @@ class LoginViewModel(
                     putString("THEME_PREFERENCE", it.companion.theme)
                         .putString("TIME_FORMAT_PREFERENCE", it.general.timeFormat)
                         .putBoolean("SEND_REMINDERS_TO_DISCORD", it.general.sendRemindersToDiscord)
+                    it.companion.splitScreen?.let { split ->
+                        putBoolean("SPLIT_SCREEN_ENABLED", split)
+                    }
                 }
             }
             sharedPrefs.edit { putString("DISCORD_ID", me?.discordId ?: "") }

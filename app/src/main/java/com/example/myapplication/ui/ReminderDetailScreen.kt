@@ -24,7 +24,8 @@ fun ReminderDetailScreen(
     use24HourTime: Boolean,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    isSplitScreen: Boolean = false
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -33,8 +34,10 @@ fun ReminderDetailScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.reminder_details)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    if (!isSplitScreen) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
                 },
                 actions = {

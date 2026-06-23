@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -29,9 +30,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -89,6 +92,13 @@ private fun getTabIndex(route: String?): Int {
         "reminders" -> 2
         else -> -1
     }
+}
+
+sealed interface RightPaneState {
+    object Empty : RightPaneState
+    data class View(val id: String) : RightPaneState
+    object Add : RightPaneState
+    data class Edit(val id: String) : RightPaneState
 }
 
 class MainActivity : ComponentActivity() {
@@ -271,6 +281,12 @@ class MainActivity : ComponentActivity() {
                     val hasUnreadAnnouncements by announcementsViewModel.hasUnreadAnnouncement.collectAsState()
                     val announcements by announcementsViewModel.announcements.collectAsState()
 
+                    var listRightPaneState by remember { mutableStateOf<RightPaneState>(RightPaneState.Empty) }
+                    var notesRightPaneState by remember { mutableStateOf<RightPaneState>(RightPaneState.Empty) }
+                    var remindersRightPaneState by remember { mutableStateOf<RightPaneState>(RightPaneState.Empty) }
+                    var archivedNotesRightPaneState by remember { mutableStateOf<RightPaneState>(RightPaneState.Empty) }
+                    var archivedRemindersRightPaneState by remember { mutableStateOf<RightPaneState>(RightPaneState.Empty) }
+
                     Scaffold(
                         floatingActionButton = {
                             if (currentDestination in listOf("list", "notes", "reminders")) {
@@ -287,25 +303,52 @@ class MainActivity : ComponentActivity() {
                                         expanded = expanded,
                                         onDismissRequest = { expanded = false }
                                     ) {
+                                        val isLargeScreen = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 600
+                                        val useSplitScreen = isLargeScreen && themePreference != "dummy" && themeViewModel.splitScreenPreference.collectAsState().value // hack to access splitScreenPreference
+
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.add_book)) },
                                             onClick = {
                                                 expanded = false
-                                                navController.navigate("add")
+                                                if (isLargeScreen && themeViewModel.splitScreenPreference.value) {
+                                                    if (currentDestination == "list") listRightPaneState = RightPaneState.Add
+                                                    else {
+                                                        navController.navigate("list") { popUpTo("list") { saveState = true }; launchSingleTop = true; restoreState = true }
+                                                        listRightPaneState = RightPaneState.Add
+                                                    }
+                                                } else {
+                                                    navController.navigate("add")
+                                                }
                                             }
                                         )
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.add_note)) },
                                             onClick = {
                                                 expanded = false
-                                                navController.navigate("add_note")
+                                                if (isLargeScreen && themeViewModel.splitScreenPreference.value) {
+                                                    if (currentDestination == "notes") notesRightPaneState = RightPaneState.Add
+                                                    else {
+                                                        navController.navigate("notes") { popUpTo("list") { saveState = true }; launchSingleTop = true; restoreState = true }
+                                                        notesRightPaneState = RightPaneState.Add
+                                                    }
+                                                } else {
+                                                    navController.navigate("add_note")
+                                                }
                                             }
                                         )
                                         DropdownMenuItem(
                                             text = { Text(stringResource(R.string.add_reminder)) },
                                             onClick = {
                                                 expanded = false
-                                                navController.navigate("add_reminder")
+                                                if (isLargeScreen && themeViewModel.splitScreenPreference.value) {
+                                                    if (currentDestination == "reminders") remindersRightPaneState = RightPaneState.Add
+                                                    else {
+                                                        navController.navigate("reminders") { popUpTo("list") { saveState = true }; launchSingleTop = true; restoreState = true }
+                                                        remindersRightPaneState = RightPaneState.Add
+                                                    }
+                                                } else {
+                                                    navController.navigate("add_reminder")
+                                                }
                                             }
                                         )
                                     }
@@ -425,29 +468,184 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             composable("list") {
-                                ReadingListScreen(
-                                    uiState = listUiState,
-                                    hasUnreadAnnouncements = hasUnreadAnnouncements,
-                                    onSyncClick = { listViewModel.syncReadingList() },
-                                    onItemClick = { id -> navController.navigate("detail/$id") },
-                                    onSettingsClick = { navController.navigate("settings") }
-                                )
+                                val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
+                                val configuration = LocalConfiguration.current
+                                val isLargeScreen = configuration.screenWidthDp >= 600
+                                val useSplitScreen = isLargeScreen && splitScreenEnabled
+
+                                var selectedListId by rememberSaveable { mutableStateOf<String?>(null) }
+
+                                if (useSplitScreen) {
+                                    Row(Modifier.fillMaxSize()) {
+                                        Box(Modifier.weight(0.4f)) {
+                                            ReadingListScreen(
+                                                uiState = listUiState,
+                                                hasUnreadAnnouncements = hasUnreadAnnouncements,
+                                                onSyncClick = { listViewModel.syncReadingList() },
+                                                onItemClick = { id -> listRightPaneState = RightPaneState.View(id) },
+                                                onSettingsClick = { navController.navigate("settings") }
+                                            )
+                                        }
+                                        Box(Modifier.weight(0.6f)) {
+                                            when (val state = listRightPaneState) {
+                                                is RightPaneState.Empty -> {
+                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                        Text(stringResource(R.string.list_label))
+                                                    }
+                                                }
+                                                is RightPaneState.View -> {
+                                                    val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == state.id } ?: listViewModel.getItemById(state.id)
+                                                    if (item != null) {
+                                                        BookDetailScreen(
+                                                            item = item,
+                                                            onEditClick = { listRightPaneState = RightPaneState.Edit(state.id) },
+                                                            onNavigateBack = { listRightPaneState = RightPaneState.Empty },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                                is RightPaneState.Add -> {
+                                                    AddReadingListItemScreen(
+                                                        onSave = { req ->
+                                                            listViewModel.addItem(req)
+                                                            listRightPaneState = RightPaneState.Empty
+                                                        },
+                                                        onNavigateBack = { listRightPaneState = RightPaneState.Empty },
+                                                        isSplitScreen = true
+                                                    )
+                                                }
+                                                is RightPaneState.Edit -> {
+                                                    val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == state.id } ?: listViewModel.getItemById(state.id)
+                                                    if (item != null) {
+                                                        EditReadingListItemScreen(
+                                                            item = item,
+                                                            onSave = { req ->
+                                                                listViewModel.updateItem(state.id, req)
+                                                                listRightPaneState = RightPaneState.View(state.id)
+                                                            },
+                                                            onNavigateBack = { listRightPaneState = RightPaneState.View(state.id) },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    ReadingListScreen(
+                                        uiState = listUiState,
+                                        hasUnreadAnnouncements = hasUnreadAnnouncements,
+                                        onSyncClick = { listViewModel.syncReadingList() },
+                                        onItemClick = { id -> navController.navigate("detail/$id") },
+                                        onSettingsClick = { navController.navigate("settings") }
+                                    )
+                                }
                             }
                             composable("notes") {
+                                val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
+                                val configuration = LocalConfiguration.current
+                                val isLargeScreen = configuration.screenWidthDp >= 600
+                                val useSplitScreen = isLargeScreen && splitScreenEnabled
+
+                                var selectedNoteId by rememberSaveable { mutableStateOf<String?>(null) }
                                 val selectedNoteIds by notesViewModel.selectedNoteIds.collectAsState()
-                                NotesListScreen(
-                                    uiState = notesUiState,
-                                    hasUnreadAnnouncements = hasUnreadAnnouncements,
-                                    selectedNoteIds = selectedNoteIds,
-                                    onSyncClick = { notesViewModel.syncNotes() },
-                                    onItemClick = { id -> navController.navigate("note_detail/$id") },
-                                    onSettingsClick = { navController.navigate("settings") },
-                                    onArchiveClick = { navController.navigate("archived_notes") },
-                                    onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
-                                    onClearSelection = { notesViewModel.clearNoteSelection() },
-                                    onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
-                                    onArchiveSelected = { notesViewModel.archiveSelectedNotes() }
-                                )
+
+                                if (useSplitScreen) {
+                                    Row(Modifier.fillMaxSize()) {
+                                        Box(Modifier.weight(0.4f)) {
+                                            NotesListScreen(
+                                                uiState = notesUiState,
+                                                hasUnreadAnnouncements = hasUnreadAnnouncements,
+                                                selectedNoteIds = selectedNoteIds,
+                                                onSyncClick = { notesViewModel.syncNotes() },
+                                                onItemClick = { id -> notesRightPaneState = RightPaneState.View(id) },
+                                                onSettingsClick = { navController.navigate("settings") },
+                                                onArchiveClick = { navController.navigate("archived_notes") },
+                                                onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
+                                                onClearSelection = { notesViewModel.clearNoteSelection() },
+                                                onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
+                                                onArchiveSelected = { notesViewModel.archiveSelectedNotes() }
+                                            )
+                                        }
+                                        Box(Modifier.weight(0.6f)) {
+                                            when (val state = notesRightPaneState) {
+                                                is RightPaneState.Empty -> {
+                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                        Text(stringResource(R.string.notes))
+                                                    }
+                                                }
+                                                is RightPaneState.View -> {
+                                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == state.id } ?: notesViewModel.getNoteById(state.id)
+                                                    if (item != null) {
+                                                        NoteDetailScreen(
+                                                            item = item,
+                                                            onEditClick = { notesRightPaneState = RightPaneState.Edit(state.id) },
+                                                            onDeleteClick = {
+                                                                notesViewModel.deleteNote(state.id)
+                                                                notesRightPaneState = RightPaneState.Empty
+                                                            },
+                                                            onArchiveClick = {
+                                                                notesViewModel.archiveNote(state.id)
+                                                                notesRightPaneState = RightPaneState.Empty
+                                                            },
+                                                            onTextUpdate = { newText ->
+                                                                val req = com.example.myapplication.data.CreateNoteRequest(
+                                                                    userId = item.userId,
+                                                                    title = item.title,
+                                                                    text = newText,
+                                                                    attachment = item.attachment,
+                                                                    archived = item.archived
+                                                                )
+                                                                notesViewModel.updateNote(state.id, req)
+                                                            },
+                                                            onNavigateBack = { notesRightPaneState = RightPaneState.Empty },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                                is RightPaneState.Add -> {
+                                                    AddNoteScreen(
+                                                        userId = sharedPrefs.getString("USER_ID", "") ?: "",
+                                                        onSave = { req ->
+                                                            notesViewModel.addNote(req)
+                                                            notesRightPaneState = RightPaneState.Empty
+                                                        },
+                                                        onNavigateBack = { notesRightPaneState = RightPaneState.Empty },
+                                                        isSplitScreen = true
+                                                    )
+                                                }
+                                                is RightPaneState.Edit -> {
+                                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == state.id } ?: notesViewModel.getNoteById(state.id)
+                                                    if (item != null) {
+                                                        EditNoteScreen(
+                                                            item = item,
+                                                            onSave = { req ->
+                                                                notesViewModel.updateNote(state.id, req)
+                                                                notesRightPaneState = RightPaneState.View(state.id)
+                                                            },
+                                                            onNavigateBack = { notesRightPaneState = RightPaneState.View(state.id) },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    NotesListScreen(
+                                        uiState = notesUiState,
+                                        hasUnreadAnnouncements = hasUnreadAnnouncements,
+                                        selectedNoteIds = selectedNoteIds,
+                                        onSyncClick = { notesViewModel.syncNotes() },
+                                        onItemClick = { id -> navController.navigate("note_detail/$id") },
+                                        onSettingsClick = { navController.navigate("settings") },
+                                        onArchiveClick = { navController.navigate("archived_notes") },
+                                        onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
+                                        onClearSelection = { notesViewModel.clearNoteSelection() },
+                                        onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
+                                        onArchiveSelected = { notesViewModel.archiveSelectedNotes() }
+                                    )
+                                }
                             }
                             composable("add") {
                                 AddReadingListItemScreen(
@@ -563,6 +761,8 @@ class MainActivity : ComponentActivity() {
                                     onUnlinkDiscord = { settingsViewModel.unlinkDiscord() },
                                     onResetDiscordLinkState = { settingsViewModel.resetState() },
                                     announcements = announcements,
+                                    splitScreenPreference = themeViewModel.splitScreenPreference.collectAsState().value,
+                                    onSplitScreenPreferenceChanged = { themeViewModel.setSplitScreenPreference(it) },
                                     onLogout = {
                                         loginViewModel.logout()
                                         navController.navigate("login") {
@@ -576,46 +776,265 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             composable("reminders") {
+                                val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
+                                val configuration = LocalConfiguration.current
+                                val isLargeScreen = configuration.screenWidthDp >= 600
+                                val useSplitScreen = isLargeScreen && splitScreenEnabled
+
+                                var selectedReminderId by rememberSaveable { mutableStateOf<String?>(null) }
                                 val selectedReminderIds by remindersViewModel.selectedReminderIds.collectAsState()
-                                RemindersListScreen(
-                                    uiState = remindersUiState,
-                                    hasUnreadAnnouncements = hasUnreadAnnouncements,
-                                    selectedReminderIds = selectedReminderIds,
-                                    use24HourTime = use24HourTime,
-                                    onSyncClick = { remindersViewModel.syncReminders() },
-                                    onItemClick = { id -> navController.navigate("reminder_detail/$id") },
-                                    onSettingsClick = { navController.navigate("settings") },
-                                    onArchiveClick = { navController.navigate("archived_reminders") },
-                                    onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
-                                    onClearSelection = { remindersViewModel.clearReminderSelection() },
-                                    onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
-                                )
+
+                                if (useSplitScreen) {
+                                    Row(Modifier.fillMaxSize()) {
+                                        Box(Modifier.weight(0.4f)) {
+                                            RemindersListScreen(
+                                                uiState = remindersUiState,
+                                                hasUnreadAnnouncements = hasUnreadAnnouncements,
+                                                selectedReminderIds = selectedReminderIds,
+                                                use24HourTime = use24HourTime,
+                                                onSyncClick = { remindersViewModel.syncReminders() },
+                                                onItemClick = { id -> remindersRightPaneState = RightPaneState.View(id) },
+                                                onSettingsClick = { navController.navigate("settings") },
+                                                onArchiveClick = { navController.navigate("archived_reminders") },
+                                                onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
+                                                onClearSelection = { remindersViewModel.clearReminderSelection() },
+                                                onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
+                                            )
+                                        }
+                                        Box(Modifier.weight(0.6f)) {
+                                            when (val state = remindersRightPaneState) {
+                                                is RightPaneState.Empty -> {
+                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                        Text(stringResource(R.string.reminders))
+                                                    }
+                                                }
+                                                is RightPaneState.View -> {
+                                                    val item = remindersUiState.reminders.find { it.id == state.id } ?: remindersViewModel.getReminderById(state.id)
+                                                    if (item != null) {
+                                                        ReminderDetailScreen(
+                                                            item = item,
+                                                            use24HourTime = use24HourTime,
+                                                            onEditClick = { remindersRightPaneState = RightPaneState.Edit(state.id) },
+                                                            onDeleteClick = {
+                                                                remindersViewModel.deleteReminder(state.id)
+                                                                remindersRightPaneState = RightPaneState.Empty
+                                                            },
+                                                            onNavigateBack = { remindersRightPaneState = RightPaneState.Empty },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                                is RightPaneState.Add -> {
+                                                    AddReminderScreen(
+                                                        userId = sharedPrefs.getString("USER_ID", "") ?: "",
+                                                        use24HourTime = use24HourTime,
+                                                        onSave = { req ->
+                                                            remindersViewModel.addReminder(req)
+                                                            remindersRightPaneState = RightPaneState.Empty
+                                                        },
+                                                        onNavigateBack = { remindersRightPaneState = RightPaneState.Empty },
+                                                        isSplitScreen = true
+                                                    )
+                                                }
+                                                is RightPaneState.Edit -> {
+                                                    val item = remindersUiState.reminders.find { it.id == state.id } ?: remindersViewModel.getReminderById(state.id)
+                                                    if (item != null) {
+                                                        EditReminderScreen(
+                                                            item = item,
+                                                            use24HourTime = use24HourTime,
+                                                            onSave = { req ->
+                                                                remindersViewModel.updateReminder(state.id, req)
+                                                                remindersRightPaneState = RightPaneState.View(state.id)
+                                                            },
+                                                            onNavigateBack = { remindersRightPaneState = RightPaneState.View(state.id) },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    RemindersListScreen(
+                                        uiState = remindersUiState,
+                                        hasUnreadAnnouncements = hasUnreadAnnouncements,
+                                        selectedReminderIds = selectedReminderIds,
+                                        use24HourTime = use24HourTime,
+                                        onSyncClick = { remindersViewModel.syncReminders() },
+                                        onItemClick = { id -> navController.navigate("reminder_detail/$id") },
+                                        onSettingsClick = { navController.navigate("settings") },
+                                        onArchiveClick = { navController.navigate("archived_reminders") },
+                                        onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
+                                        onClearSelection = { remindersViewModel.clearReminderSelection() },
+                                        onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
+                                    )
+                                }
                             }
                             composable("archived_reminders") {
+                                val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
+                                val configuration = LocalConfiguration.current
+                                val isLargeScreen = configuration.screenWidthDp >= 600
+                                val useSplitScreen = isLargeScreen && splitScreenEnabled
+
                                 val selectedReminderIds by remindersViewModel.selectedReminderIds.collectAsState()
-                                ArchivedRemindersScreen(
-                                    uiState = remindersUiState,
-                                    selectedReminderIds = selectedReminderIds,
-                                    use24HourTime = use24HourTime,
-                                    onNavigateBack = { navController.popBackStack() },
-                                    onItemClick = { id -> navController.navigate("reminder_detail/$id") },
-                                    onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
-                                    onClearSelection = { remindersViewModel.clearReminderSelection() },
-                                    onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
-                                )
+
+                                if (useSplitScreen) {
+                                    Row(Modifier.fillMaxSize()) {
+                                        Box(Modifier.weight(0.4f)) {
+                                            ArchivedRemindersScreen(
+                                                uiState = remindersUiState,
+                                                selectedReminderIds = selectedReminderIds,
+                                                use24HourTime = use24HourTime,
+                                                onNavigateBack = { navController.popBackStack() },
+                                                onItemClick = { id -> archivedRemindersRightPaneState = RightPaneState.View(id) },
+                                                onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
+                                                onClearSelection = { remindersViewModel.clearReminderSelection() },
+                                                onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
+                                            )
+                                        }
+                                        Box(Modifier.weight(0.6f)) {
+                                            when (val state = archivedRemindersRightPaneState) {
+                                                is RightPaneState.Empty -> {
+                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                        Text(stringResource(R.string.reminders))
+                                                    }
+                                                }
+                                                is RightPaneState.View -> {
+                                                    val item = remindersUiState.reminders.find { it.id == state.id } ?: remindersViewModel.getReminderById(state.id)
+                                                    if (item != null) {
+                                                        ReminderDetailScreen(
+                                                            item = item,
+                                                            use24HourTime = use24HourTime,
+                                                            onEditClick = { archivedRemindersRightPaneState = RightPaneState.Edit(state.id) },
+                                                            onDeleteClick = {
+                                                                remindersViewModel.deleteReminder(state.id)
+                                                                archivedRemindersRightPaneState = RightPaneState.Empty
+                                                            },
+                                                            onNavigateBack = { archivedRemindersRightPaneState = RightPaneState.Empty },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                                is RightPaneState.Edit -> {
+                                                    val item = remindersUiState.reminders.find { it.id == state.id } ?: remindersViewModel.getReminderById(state.id)
+                                                    if (item != null) {
+                                                        EditReminderScreen(
+                                                            item = item,
+                                                            use24HourTime = use24HourTime,
+                                                            onSave = { req ->
+                                                                remindersViewModel.updateReminder(state.id, req)
+                                                                archivedRemindersRightPaneState = RightPaneState.View(state.id)
+                                                            },
+                                                            onNavigateBack = { archivedRemindersRightPaneState = RightPaneState.View(state.id) },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                                else -> {}
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    ArchivedRemindersScreen(
+                                        uiState = remindersUiState,
+                                        selectedReminderIds = selectedReminderIds,
+                                        use24HourTime = use24HourTime,
+                                        onNavigateBack = { navController.popBackStack() },
+                                        onItemClick = { id -> navController.navigate("reminder_detail/$id") },
+                                        onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
+                                        onClearSelection = { remindersViewModel.clearReminderSelection() },
+                                        onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
+                                    )
+                                }
                             }
                             composable("archived_notes") {
+                                val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
+                                val configuration = LocalConfiguration.current
+                                val isLargeScreen = configuration.screenWidthDp >= 600
+                                val useSplitScreen = isLargeScreen && splitScreenEnabled
+
                                 val selectedNoteIds by notesViewModel.selectedNoteIds.collectAsState()
-                                ArchivedNotesScreen(
-                                    uiState = notesUiState,
-                                    selectedNoteIds = selectedNoteIds,
-                                    onNavigateBack = { navController.popBackStack() },
-                                    onItemClick = { id -> navController.navigate("note_detail/$id") },
-                                    onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
-                                    onClearSelection = { notesViewModel.clearNoteSelection() },
-                                    onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
-                                    onUnarchiveSelected = { notesViewModel.unarchiveSelectedNotes() }
-                                )
+
+                                if (useSplitScreen) {
+                                    Row(Modifier.fillMaxSize()) {
+                                        Box(Modifier.weight(0.4f)) {
+                                            ArchivedNotesScreen(
+                                                uiState = notesUiState,
+                                                selectedNoteIds = selectedNoteIds,
+                                                onNavigateBack = { navController.popBackStack() },
+                                                onItemClick = { id -> archivedNotesRightPaneState = RightPaneState.View(id) },
+                                                onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
+                                                onClearSelection = { notesViewModel.clearNoteSelection() },
+                                                onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
+                                                onUnarchiveSelected = { notesViewModel.unarchiveSelectedNotes() }
+                                            )
+                                        }
+                                        Box(Modifier.weight(0.6f)) {
+                                            when (val state = archivedNotesRightPaneState) {
+                                                is RightPaneState.Empty -> {
+                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                        Text(stringResource(R.string.notes))
+                                                    }
+                                                }
+                                                is RightPaneState.View -> {
+                                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == state.id } ?: notesViewModel.getNoteById(state.id)
+                                                    if (item != null) {
+                                                        NoteDetailScreen(
+                                                            item = item,
+                                                            onEditClick = { archivedNotesRightPaneState = RightPaneState.Edit(state.id) },
+                                                            onDeleteClick = {
+                                                                notesViewModel.deleteNote(state.id)
+                                                                archivedNotesRightPaneState = RightPaneState.Empty
+                                                            },
+                                                            onArchiveClick = {
+                                                                notesViewModel.archiveNote(state.id)
+                                                                archivedNotesRightPaneState = RightPaneState.Empty
+                                                            },
+                                                            onTextUpdate = { newText ->
+                                                                val req = com.example.myapplication.data.CreateNoteRequest(
+                                                                    userId = item.userId,
+                                                                    title = item.title,
+                                                                    text = newText,
+                                                                    attachment = item.attachment,
+                                                                    archived = item.archived
+                                                                )
+                                                                notesViewModel.updateNote(state.id, req)
+                                                            },
+                                                            onNavigateBack = { archivedNotesRightPaneState = RightPaneState.Empty },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                                is RightPaneState.Edit -> {
+                                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == state.id } ?: notesViewModel.getNoteById(state.id)
+                                                    if (item != null) {
+                                                        EditNoteScreen(
+                                                            item = item,
+                                                            onSave = { req ->
+                                                                notesViewModel.updateNote(state.id, req)
+                                                                archivedNotesRightPaneState = RightPaneState.View(state.id)
+                                                            },
+                                                            onNavigateBack = { archivedNotesRightPaneState = RightPaneState.View(state.id) },
+                                                            isSplitScreen = true
+                                                        )
+                                                    }
+                                                }
+                                                else -> {}
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    ArchivedNotesScreen(
+                                        uiState = notesUiState,
+                                        selectedNoteIds = selectedNoteIds,
+                                        onNavigateBack = { navController.popBackStack() },
+                                        onItemClick = { id -> navController.navigate("note_detail/$id") },
+                                        onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
+                                        onClearSelection = { notesViewModel.clearNoteSelection() },
+                                        onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
+                                        onUnarchiveSelected = { notesViewModel.unarchiveSelectedNotes() }
+                                    )
+                                }
                             }
                             composable("add_reminder") {
                                 val userId = sharedPrefs.getString("USER_ID", "") ?: ""

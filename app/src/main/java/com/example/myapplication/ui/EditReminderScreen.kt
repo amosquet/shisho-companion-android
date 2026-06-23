@@ -18,7 +18,8 @@ fun EditReminderScreen(
     item: ReminderItem,
     use24HourTime: Boolean,
     onSave: (CreateReminderRequest) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    isSplitScreen: Boolean = false
 ) {
     var reminderText by remember { mutableStateOf(item.reminderText) }
     var remindAt by remember { mutableStateOf(item.remindAt) }
@@ -29,8 +30,10 @@ fun EditReminderScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.edit_reminder)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    if (!isSplitScreen) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
                 }
             )

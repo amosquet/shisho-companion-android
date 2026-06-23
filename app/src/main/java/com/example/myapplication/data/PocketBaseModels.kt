@@ -120,7 +120,8 @@ data class CreateReminderRequest(
 
 @Serializable
 data class CompanionPreferences(
-    val theme: String = "SYSTEM"
+    val theme: String = "SYSTEM",
+    @SerialName("split_screen") val splitScreen: Boolean? = null
 )
 
 @Serializable

@@ -28,7 +28,8 @@ import com.example.myapplication.data.NoteItem
 fun EditNoteScreen(
     item: NoteItem,
     onSave: (CreateNoteRequest) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    isSplitScreen: Boolean = false
 ) {
     var title by remember { mutableStateOf(item.title) }
     var text by remember { mutableStateOf(item.text) }
@@ -47,8 +48,10 @@ fun EditNoteScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.edit_note)) },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                    if (!isSplitScreen) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                        }
                     }
                 },
                 actions = {

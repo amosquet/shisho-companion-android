@@ -101,4 +101,5 @@
     <string name="general">General</string>
     <string name="logged_in_as">Logged in as: %1$s</string>
     <string name="guest">Guest</string>
+    <string name="split_screen_large_devices">Split Screen</string>
 </resources>
