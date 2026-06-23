@@ -101,7 +101,7 @@ fun EditNoteScreen(
                     val prefix = if (text.isEmpty() || text.endsWith("\n")) "" else "\n"
                     text += "$prefix- [ ] "
                 }) {
-                    Text("+ List Item")
+                    Text(stringResource(R.string.add_list_item_button))
                 }
             }
             
@@ -125,14 +125,14 @@ fun EditNoteScreen(
 
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Checkbox(checked = archived, onCheckedChange = { archived = it })
-                Text("Archived")
+                Text(stringResource(R.string.archived))
             }
 
             Button(
                 onClick = { launcher.launch("*/*") },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Add Attachments (${attachmentUris.size}/5)")
+                Text(stringResource(R.string.add_attachments_format, attachmentUris.size))
             }
             if (attachmentUris.isNotEmpty()) {
                 Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {

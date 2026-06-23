@@ -25,7 +25,7 @@ class AnnouncementsViewModel(
     private val _hasUnreadAnnouncement = MutableStateFlow(false)
     val hasUnreadAnnouncement: StateFlow<Boolean> = _hasUnreadAnnouncement.asStateFlow()
 
-    private val baseUrl: String = BuildConfig.POCKETBASE_URL
+    private val baseUrl: String = BuildConfig.SHISHO_API_URL
 
     init {
         fetchAnnouncements()

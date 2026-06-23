@@ -154,7 +154,7 @@ fun EditReadingListItemScreen(
                         androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 }) {
-                    Text("Select Cover Image")
+                    Text(stringResource(R.string.select_cover_image))
                 }
                 
                 val displayUri = coverUri ?: item.imageUrl

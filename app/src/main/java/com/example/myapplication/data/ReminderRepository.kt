@@ -126,33 +126,18 @@ class ReminderRepository(
     }
 
     suspend fun updateReminder(id: String, req: CreateReminderRequest) {
-        if (id.startsWith("local_")) {
-            val existing = dao.getReminderById(id)
-            if (existing != null) {
-                dao.insertReminder(existing.copy(
-                    reminderText = req.reminderText,
-                    remindAt = req.remindAt,
-                    isSent = req.isSent
-                ))
-            }
-        } else {
+        val existing = dao.getReminderById(id)
+        if (existing != null) {
+            dao.insertReminder(existing.copy(
+                reminderText = req.reminderText,
+                remindAt = req.remindAt,
+                isSent = req.isSent,
+                isPendingSync = true
+            ))
             try {
-                client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
-                    authToken?.let { header("Authorization", "Bearer $it") }
-                    contentType(ContentType.Application.Json)
-                    setBody(req)
-                }
                 sync()
             } catch (e: Exception) {
                 e.printStackTrace()
-                val existing = dao.getReminderById(id)
-                if (existing != null) {
-                    dao.insertReminder(existing.copy(
-                        reminderText = req.reminderText,
-                        remindAt = req.remindAt,
-                        isSent = req.isSent
-                    ))
-                }
             }
         }
     }

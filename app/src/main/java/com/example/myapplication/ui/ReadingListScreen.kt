@@ -157,6 +157,14 @@ fun ReadingListItemCard(item: ReadingListItem, onClick: () -> Unit) {
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+                if (item.status.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = item.status.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
     }

@@ -139,8 +139,8 @@ fun NotesListScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Selected Notes") },
-            text = { Text("Are you sure you want to delete ${selectedNoteIds.size} selected notes?") },
+            title = { Text(stringResource(R.string.delete_selected_notes)) },
+            text = { Text(stringResource(R.string.delete_multiple_notes_confirm, selectedNoteIds.size)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -148,7 +148,7 @@ fun NotesListScreen(
                         onDeleteSelected()
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {

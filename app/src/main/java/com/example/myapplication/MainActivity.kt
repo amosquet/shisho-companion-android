@@ -213,7 +213,25 @@ class MainActivity : ComponentActivity() {
                 else -> android.text.format.DateFormat.is24HourFormat(context)
             }
 
-            MyApplicationTheme(themePreference = themePreference) {
+            val languagePreference by themeViewModel.languagePreference.collectAsState()
+            
+            val locale = if (languagePreference == "SYSTEM") java.util.Locale.getDefault() else java.util.Locale.forLanguageTag(languagePreference)
+            val updatedContext = remember(context, locale) {
+                val config = android.content.res.Configuration(context.resources.configuration)
+                config.setLocale(locale)
+                val newContext = context.createConfigurationContext(config)
+                object : android.content.ContextWrapper(context) {
+                    override fun getResources(): android.content.res.Resources {
+                        return newContext.resources
+                    }
+                }
+            }
+
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalContext provides updatedContext,
+                androidx.compose.ui.platform.LocalConfiguration provides updatedContext.resources.configuration
+            ) {
+                MyApplicationTheme(themePreference = themePreference) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
@@ -523,12 +541,19 @@ class MainActivity : ComponentActivity() {
                                 val settingsViewModel: SettingsViewModel = viewModel(factory = viewModelFactory)
                                 val discordLinkUiState by settingsViewModel.uiState.collectAsState()
                                 val linkedDiscordId by settingsViewModel.linkedDiscordId.collectAsState()
+
+                                LaunchedEffect(Unit) {
+                                    announcementsViewModel.markAsRead()
+                                }
+
                                 SettingsScreen(
                                     userEmail = sharedPrefs.getString("USER_EMAIL", "") ?: "",
                                     themePreference = themePreference,
                                     onThemePreferenceChanged = { themeViewModel.setThemePreference(it) },
                                     timeFormatPreference = timeFormatPreference,
                                     onTimeFormatPreferenceChanged = { themeViewModel.setTimeFormatPreference(it) },
+                                    languagePreference = languagePreference,
+                                    onLanguagePreferenceChanged = { themeViewModel.setLanguagePreference(it) },
                                     sendRemindersToDiscordPreference = sendRemindersToDiscordPreference,
                                     onSendRemindersToDiscordPreferenceChanged = { themeViewModel.setSendRemindersToDiscordPreference(it) },
                                     linkedDiscordId = linkedDiscordId,
@@ -635,6 +660,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                }
                 }
             }
         }

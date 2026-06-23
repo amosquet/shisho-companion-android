@@ -42,6 +42,9 @@ class ThemeViewModel(
     private val _timeFormatPreference = MutableStateFlow(getTimeFormatPreferenceWithMigration(sharedPrefs))
     val timeFormatPreference: StateFlow<String> = _timeFormatPreference.asStateFlow()
 
+    private val _languagePreference = MutableStateFlow(sharedPrefs.getString("LANGUAGE_PREFERENCE", "SYSTEM") ?: "SYSTEM")
+    val languagePreference: StateFlow<String> = _languagePreference.asStateFlow()
+
     private val _sendRemindersToDiscordPreference = MutableStateFlow(sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false))
     val sendRemindersToDiscordPreference: StateFlow<Boolean> = _sendRemindersToDiscordPreference.asStateFlow()
 
@@ -86,6 +89,11 @@ class ThemeViewModel(
         }
     }
 
+    fun setLanguagePreference(lang: String) {
+        sharedPrefs.edit().putString("LANGUAGE_PREFERENCE", lang).apply()
+        _languagePreference.value = lang
+    }
+
     fun setSendRemindersToDiscordPreference(send: Boolean) {
         sharedPrefs.edit().putBoolean("SEND_REMINDERS_TO_DISCORD", send).apply()
         _sendRemindersToDiscordPreference.value = send
@@ -111,5 +119,6 @@ class ThemeViewModel(
         _themePreference.value = getThemePreferenceWithMigration(sharedPrefs)
         _timeFormatPreference.value = getTimeFormatPreferenceWithMigration(sharedPrefs)
         _sendRemindersToDiscordPreference.value = sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false)
+        _languagePreference.value = sharedPrefs.getString("LANGUAGE_PREFERENCE", "SYSTEM") ?: "SYSTEM"
     }
 }

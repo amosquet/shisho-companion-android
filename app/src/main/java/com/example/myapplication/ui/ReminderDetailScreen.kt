@@ -31,7 +31,7 @@ fun ReminderDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Reminder Details") },
+                title = { Text(stringResource(R.string.reminder_details)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -59,11 +59,11 @@ fun ReminderDetailScreen(
                 .padding(16.dp)
                 .fillMaxSize()
         ) {
-            Text("Reminder", style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.reminder), style = MaterialTheme.typography.labelSmall)
             Text(item.reminderText, style = MaterialTheme.typography.bodyLarge)
             Spacer(modifier = Modifier.height(16.dp))
             
-            Text("Remind At", style = MaterialTheme.typography.labelSmall)
+            Text(stringResource(R.string.remind_at), style = MaterialTheme.typography.labelSmall)
             Text(formatReminderTime(item.remindAt, use24HourTime), style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -75,8 +75,8 @@ fun ReminderDetailScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Reminder") },
-            text = { Text("Are you sure you want to delete this reminder?") },
+            title = { Text(stringResource(R.string.delete_reminder)) },
+            text = { Text(stringResource(R.string.delete_reminder_confirm)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -84,7 +84,7 @@ fun ReminderDetailScreen(
                         onDeleteClick()
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {

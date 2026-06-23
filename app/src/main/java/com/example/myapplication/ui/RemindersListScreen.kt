@@ -145,8 +145,8 @@ fun RemindersListScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Selected Reminders") },
-            text = { Text("Are you sure you want to delete ${selectedReminderIds.size} selected reminders?") },
+            title = { Text(stringResource(R.string.delete_selected_reminders)) },
+            text = { Text(stringResource(R.string.delete_multiple_reminders_confirm, selectedReminderIds.size)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -154,7 +154,7 @@ fun RemindersListScreen(
                         onDeleteSelected()
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {

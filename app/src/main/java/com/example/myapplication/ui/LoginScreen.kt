@@ -65,7 +65,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -76,7 +76,7 @@ fun LoginScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password)) },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth(),
@@ -111,7 +111,7 @@ fun LoginScreen(
                 onClick = onContinueAsGuest,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Continue as Guest")
+                Text(stringResource(R.string.continue_as_guest))
             }
 
             if (uiState is LoginUiState.Error) {

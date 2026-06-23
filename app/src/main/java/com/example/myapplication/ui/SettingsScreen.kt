@@ -32,6 +32,8 @@ fun SettingsScreen(
     onThemePreferenceChanged: (String) -> Unit,
     timeFormatPreference: String,
     onTimeFormatPreferenceChanged: (String) -> Unit,
+    languagePreference: String,
+    onLanguagePreferenceChanged: (String) -> Unit,
     sendRemindersToDiscordPreference: Boolean,
     onSendRemindersToDiscordPreferenceChanged: (Boolean) -> Unit,
     linkedDiscordId: String,
@@ -52,7 +54,7 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -76,13 +78,13 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Account",
+                text = stringResource(R.string.account),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
             )
             
-            Text("Logged in as: ${if (userEmail.isNotBlank()) userEmail else "Guest"}", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.logged_in_as, if (userEmail.isNotBlank()) userEmail else stringResource(R.string.guest)), style = MaterialTheme.typography.bodyMedium)
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -97,7 +99,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Theme",
+                            text = stringResource(R.string.theme),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -118,28 +120,28 @@ fun SettingsScreen(
                                 onDismissRequest = { themeDropdownExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("System Default") },
+                                    text = { Text(stringResource(R.string.system_default)) },
                                     onClick = {
                                         onThemePreferenceChanged("SYSTEM")
                                         themeDropdownExpanded = false
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Light") },
+                                    text = { Text(stringResource(R.string.light)) },
                                     onClick = {
                                         onThemePreferenceChanged("LIGHT")
                                         themeDropdownExpanded = false
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Dark") },
+                                    text = { Text(stringResource(R.string.dark)) },
                                     onClick = {
                                         onThemePreferenceChanged("DARK")
                                         themeDropdownExpanded = false
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("OLED") },
+                                    text = { Text(stringResource(R.string.oled)) },
                                     onClick = {
                                         onThemePreferenceChanged("OLED")
                                         themeDropdownExpanded = false
@@ -156,7 +158,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "General",
+                text = stringResource(R.string.general),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
@@ -172,7 +174,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Time Format",
+                            text = stringResource(R.string.time_format),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -192,24 +194,84 @@ fun SettingsScreen(
                                 onDismissRequest = { timeFormatDropdownExpanded = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text("System Default") },
+                                    text = { Text(stringResource(R.string.system_default)) },
                                     onClick = {
                                         onTimeFormatPreferenceChanged("SYSTEM")
                                         timeFormatDropdownExpanded = false
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("12-Hour") },
+                                    text = { Text(stringResource(R.string.twelve_hour)) },
                                     onClick = {
                                         onTimeFormatPreferenceChanged("12_HOUR")
                                         timeFormatDropdownExpanded = false
                                     }
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("24-Hour") },
+                                    text = { Text(stringResource(R.string.twenty_four_hour)) },
                                     onClick = {
                                         onTimeFormatPreferenceChanged("24_HOUR")
                                         timeFormatDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.language),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        var languageDropdownExpanded by remember { mutableStateOf(false) }
+                        Box {
+                            TextButton(onClick = { languageDropdownExpanded = true }) {
+                                Text(
+                                    text = when (languagePreference) {
+                                        "en" -> "English"
+                                        "fr" -> "Français"
+                                        "ja" -> "日本語"
+                                        else -> "System Default"
+                                    }
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = languageDropdownExpanded,
+                                onDismissRequest = { languageDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.system_default)) },
+                                    onClick = {
+                                        onLanguagePreferenceChanged("SYSTEM")
+                                        languageDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.english)) },
+                                    onClick = {
+                                        onLanguagePreferenceChanged("en")
+                                        languageDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.french)) },
+                                    onClick = {
+                                        onLanguagePreferenceChanged("fr")
+                                        languageDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.japanese)) },
+                                    onClick = {
+                                        onLanguagePreferenceChanged("ja")
+                                        languageDropdownExpanded = false
                                     }
                                 )
                             }
@@ -222,20 +284,20 @@ fun SettingsScreen(
             Divider()
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text("Discord Integration", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.discord_integration), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
 
             if (userEmail.isBlank()) {
-                Text("Please log in to link your Discord account.", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.please_login_discord), style = MaterialTheme.typography.bodyMedium)
             } else if (linkedDiscordId.isNotBlank()) {
-                Text("Linked to Discord ID: $linkedDiscordId", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.linked_to_discord, linkedDiscordId), style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Send Reminders to Discord", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.send_reminders_discord), style = MaterialTheme.typography.bodyLarge)
                     Switch(
                         checked = sendRemindersToDiscordPreference,
                         onCheckedChange = { onSendRemindersToDiscordPreferenceChanged(it) }
@@ -246,10 +308,10 @@ fun SettingsScreen(
                     onClick = { showUnlinkDiscordDialog = true },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Unlink Discord")
+                    Text(stringResource(R.string.unlink_discord))
                 }
             } else {
-                Text("Link your Discord account to receive reminders and manage notes via the Shisho bot.", style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.link_discord_description), style = MaterialTheme.typography.bodySmall)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 var inputDiscordId by remember { mutableStateOf("") }
@@ -261,7 +323,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = inputDiscordId,
                             onValueChange = { inputDiscordId = it },
-                            label = { Text("Discord User ID") },
+                            label = { Text(stringResource(R.string.discord_user_id)) },
                             modifier = Modifier.fillMaxWidth(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             trailingIcon = {
@@ -273,11 +335,11 @@ fun SettingsScreen(
                         if (showDiscordIdInfoDialog) {
                             AlertDialog(
                                 onDismissRequest = { showDiscordIdInfoDialog = false },
-                                title = { Text("Discord User ID") },
-                                text = { Text("Your Discord User ID is a 17-19 digit number. To find it, enable 'Developer Mode' in your Discord App Settings under 'Advanced', then right-click or tap your profile and select 'Copy User ID'.") },
+                                title = { Text(stringResource(R.string.discord_user_id)) },
+                                text = { Text(stringResource(R.string.discord_id_help)) },
                                 confirmButton = {
                                     TextButton(onClick = { showDiscordIdInfoDialog = false }) {
-                                        Text("OK")
+                                        Text(stringResource(R.string.ok))
                                     }
                                 }
                             )
@@ -287,19 +349,19 @@ fun SettingsScreen(
                             onClick = { onRequestDiscordLink(inputDiscordId) },
                             enabled = inputDiscordId.isNotBlank()
                         ) {
-                            Text("Request PIN via DM")
+                            Text(stringResource(R.string.request_pin_dm))
                         }
                     }
                     is DiscordLinkUiState.Loading -> {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
                     }
                     is DiscordLinkUiState.PinRequested -> {
-                        Text("A PIN has been sent to your Discord account.", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.pin_sent), style = MaterialTheme.typography.bodyMedium)
                         Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
                             value = inputPin,
                             onValueChange = { inputPin = it },
-                            label = { Text("Enter PIN") },
+                            label = { Text(stringResource(R.string.enter_pin)) },
                             modifier = Modifier.fillMaxWidth(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
@@ -309,11 +371,11 @@ fun SettingsScreen(
                                 onClick = { onVerifyDiscordLink(inputPin) },
                                 enabled = inputPin.isNotBlank() && !discordLinkUiState.isVerifying
                             ) {
-                                Text("Verify PIN")
+                                Text(stringResource(R.string.verify_pin))
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             TextButton(onClick = onResetDiscordLinkState) {
-                                Text("Cancel")
+                                Text(stringResource(R.string.cancel))
                             }
                         }
                         if (discordLinkUiState.verifyError != null) {
@@ -330,7 +392,7 @@ fun SettingsScreen(
                         Text(discordLinkUiState.message, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(onClick = onResetDiscordLinkState) {
-                            Text("Try Again")
+                            Text(stringResource(R.string.try_again))
                         }
                     }
                 }
@@ -340,7 +402,7 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 Divider()
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Announcements", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.announcements), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 announcements.forEach { ann ->
@@ -361,14 +423,14 @@ fun SettingsScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Logout")
+                Text(stringResource(R.string.logout))
             }
 
             if (showLogoutDialog) {
                 AlertDialog(
                     onDismissRequest = { showLogoutDialog = false },
-                    title = { Text("Confirm Logout") },
-                    text = { Text("Are you sure you want to log out?") },
+                    title = { Text(stringResource(R.string.confirm_logout)) },
+                    text = { Text(stringResource(R.string.logout_confirm)) },
                     confirmButton = {
                         Button(
                             onClick = {
@@ -377,12 +439,12 @@ fun SettingsScreen(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                         ) {
-                            Text("Logout")
+                            Text(stringResource(R.string.logout))
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showLogoutDialog = false }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 )
@@ -391,8 +453,8 @@ fun SettingsScreen(
             if (showUnlinkDiscordDialog) {
                 AlertDialog(
                     onDismissRequest = { showUnlinkDiscordDialog = false },
-                    title = { Text("Confirm Unlink") },
-                    text = { Text("Are you sure you want to unlink your Discord account? You will no longer receive reminders or be able to manage notes via the Shisho bot.") },
+                    title = { Text(stringResource(R.string.confirm_unlink)) },
+                    text = { Text(stringResource(R.string.unlink_discord_confirm)) },
                     confirmButton = {
                         Button(
                             onClick = {
@@ -401,12 +463,12 @@ fun SettingsScreen(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                         ) {
-                            Text("Unlink")
+                            Text(stringResource(R.string.unlink))
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showUnlinkDiscordDialog = false }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 )

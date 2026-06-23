@@ -152,7 +152,7 @@ fun AddReadingListItemScreen(
                         androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 }) {
-                    Text("Select Cover Image")
+                    Text(stringResource(R.string.select_cover_image))
                 }
                 
                 coverUri?.let { uri ->

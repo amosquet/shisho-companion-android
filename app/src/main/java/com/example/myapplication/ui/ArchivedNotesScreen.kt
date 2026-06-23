@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.*
+import androidx.compose.ui.res.stringResource
+import com.example.myapplication.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -118,8 +120,8 @@ fun ArchivedNotesScreen(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Archived Notes") },
-            text = { Text("Are you sure you want to delete ${selectedNoteIds.size} selected notes?") },
+            title = { Text(stringResource(R.string.delete_archived_notes)) },
+            text = { Text(stringResource(R.string.delete_multiple_notes_confirm, selectedNoteIds.size)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -127,12 +129,12 @@ fun ArchivedNotesScreen(
                         onDeleteSelected()
                     }
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

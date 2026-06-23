@@ -115,7 +115,7 @@ data class CreateReminderRequest(
     @SerialName("user_id") val userId: String = "",
     @SerialName("reminder_text") val reminderText: String,
     @SerialName("remind_at") val remindAt: String,
-    @SerialName("is_sent") val isSent: Boolean = false
+    @SerialName("is_sent") val isSent: Boolean
 )
 
 @Serializable

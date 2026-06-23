@@ -89,7 +89,7 @@ fun DateTimePickerField(
                     value = displayDate,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Date") },
+                    label = { Text(stringResource(R.string.date)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     trailingIcon = {
@@ -107,7 +107,7 @@ fun DateTimePickerField(
                     value = displayTime,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Time") },
+                    label = { Text(stringResource(R.string.time)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
