@@ -17,7 +17,7 @@ val shishoApiUrl = envProps.getProperty("SHISHO_API_URL") ?: "https://shisho.amc
 
 
 android {
-    namespace = "com.example.myapplication"
+    namespace = "com.shishocompanion"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -25,7 +25,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.myapplication"
+        applicationId = "com.shishocompanion"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -79,6 +79,10 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.compose.material3.adaptive)
+    implementation(libs.androidx.compose.material3.adaptive.layout)
+    implementation(libs.androidx.compose.material3.adaptive.navigation)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+    implementation(libs.sqlcipher)
 }

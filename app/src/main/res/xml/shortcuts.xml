@@ -7,9 +7,9 @@
         android:shortcutShortLabel="@string/add_note_shortcut_short"
         android:shortcutLongLabel="@string/add_note_shortcut_long">
         <intent
-            android:action="com.example.myapplication.ADD_NOTE"
-            android:targetPackage="com.example.myapplication"
-            android:targetClass="com.example.myapplication.MainActivity" />
+            android:action="com.shishocompanion.ADD_NOTE"
+            android:targetPackage="com.shishocompanion"
+            android:targetClass="com.shishocompanion.MainActivity" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>
 </shortcuts>
