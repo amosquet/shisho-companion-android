@@ -198,6 +198,7 @@ fun EditReadingListItemScreen(
                             isbn = isbn,
                             startDate = startDate,
                             endDate = endDate,
+                            completed = item.completed,
                             coverBytes = coverBytes,
                             coverFilename = coverFilename
                         )

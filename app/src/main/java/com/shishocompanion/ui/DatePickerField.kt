@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -22,12 +23,35 @@ fun DatePickerField(
     label: String,
     modifier: Modifier = Modifier
 ) {
+    val initialDateMillis = remember(value) {
+        if (value.isBlank()) null
+        else {
+            try {
+                val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US)
+                parser.timeZone = TimeZone.getTimeZone("UTC")
+                parser.parse(value)?.time
+            } catch (e: Exception) {
+                try {
+                    val parser = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                    parser.timeZone = TimeZone.getTimeZone("UTC")
+                    parser.parse(value)?.time
+                } catch (e2: Exception) {
+                    null
+                }
+            }
+        }
+    }
+
     var showDialog by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialDateMillis)
+    
+    val displayValue = remember(value) {
+        if (value.isBlank()) "" else formatDateOnly(value, "YYYY_MM_DD", false)
+    }
 
     Box(modifier = modifier) {
         OutlinedTextField(
-            value = value,
+            value = displayValue,
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
@@ -51,7 +75,8 @@ fun DatePickerField(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val formatter = SimpleDateFormat("yyyy-MM-dd 00:00:00.000'Z'", Locale.US)
+                        formatter.timeZone = TimeZone.getTimeZone("UTC")
                         onValueChange(formatter.format(Date(millis)))
                     }
                     showDialog = false

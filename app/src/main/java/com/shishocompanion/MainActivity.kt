@@ -201,6 +201,7 @@ class MainActivity : ComponentActivity() {
             val themeViewModel: ThemeViewModel = viewModel(factory = viewModelFactory)
             val themePreference by themeViewModel.themePreference.collectAsState()
             val timeFormatPreference by themeViewModel.timeFormatPreference.collectAsState()
+            val dateFormatPreference by themeViewModel.dateFormatPreference.collectAsState()
             val sendRemindersToDiscordPreference by themeViewModel.sendRemindersToDiscordPreference.collectAsState()
             val context = androidx.compose.ui.platform.LocalContext.current
             val use24HourTime = when (timeFormatPreference) {
@@ -492,8 +493,13 @@ class MainActivity : ComponentActivity() {
                                                             BookDetailScreen(
                                                                 item = item,
                                                                 onEditClick = { listRightPaneState = RightPaneState.Edit(state.id) },
+                                                                onDeleteClick = {
+                                                                    listViewModel.deleteItem(state.id)
+                                                                    listRightPaneState = RightPaneState.Empty
+                                                                },
                                                                 onNavigateBack = { listRightPaneState = RightPaneState.Empty },
-                                                                isSplitScreen = true
+                                                                isSplitScreen = true,
+                                                                dateFormatPreference = dateFormatPreference
                                                             )
                                                         }
                                                     }
@@ -562,7 +568,8 @@ class MainActivity : ComponentActivity() {
                                                     onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
                                                     onClearSelection = { notesViewModel.clearNoteSelection() },
                                                     onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
-                                                    onArchiveSelected = { notesViewModel.archiveSelectedNotes() }
+                                                    onArchiveSelected = { notesViewModel.archiveSelectedNotes() },
+                                                    dateFormatPreference = dateFormatPreference
                                                 )
                                             }
                                         },
@@ -599,7 +606,8 @@ class MainActivity : ComponentActivity() {
                                                                     notesViewModel.updateNote(state.id, req)
                                                                 },
                                                                 onNavigateBack = { notesRightPaneState = RightPaneState.Empty },
-                                                                isSplitScreen = true
+                                                                isSplitScreen = true,
+                                                                dateFormatPreference = dateFormatPreference
                                                             )
                                                         }
                                                     }
@@ -644,7 +652,8 @@ class MainActivity : ComponentActivity() {
                                         onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
                                         onClearSelection = { notesViewModel.clearNoteSelection() },
                                         onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
-                                        onArchiveSelected = { notesViewModel.archiveSelectedNotes() }
+                                        onArchiveSelected = { notesViewModel.archiveSelectedNotes() },
+                                        dateFormatPreference = dateFormatPreference
                                     )
                                 }
                             }
@@ -664,7 +673,12 @@ class MainActivity : ComponentActivity() {
                                         BookDetailScreen(
                                             item = item,
                                             onEditClick = { navController.navigate("edit/$id") },
-                                            onNavigateBack = { navController.popBackStack() }
+                                            onDeleteClick = {
+                                                listViewModel.deleteItem(id)
+                                                navController.popBackStack()
+                                            },
+                                            onNavigateBack = { navController.popBackStack() },
+                                            dateFormatPreference = dateFormatPreference
                                         )
                                     }
                                 }
@@ -751,6 +765,8 @@ class MainActivity : ComponentActivity() {
                                     onThemePreferenceChanged = { themeViewModel.setThemePreference(it) },
                                     timeFormatPreference = timeFormatPreference,
                                     onTimeFormatPreferenceChanged = { themeViewModel.setTimeFormatPreference(it) },
+                                    dateFormatPreference = dateFormatPreference,
+                                    onDateFormatPreferenceChanged = { themeViewModel.setDateFormatPreference(it) },
                                     languagePreference = languagePreference,
                                     onLanguagePreferenceChanged = { themeViewModel.setLanguagePreference(it) },
                                     sendRemindersToDiscordPreference = sendRemindersToDiscordPreference,
@@ -797,6 +813,7 @@ class MainActivity : ComponentActivity() {
                                                     hasUnreadAnnouncements = hasUnreadAnnouncements,
                                                     selectedReminderIds = selectedReminderIds,
                                                     use24HourTime = use24HourTime,
+                                                    dateFormatPreference = dateFormatPreference,
                                                     onSyncClick = { remindersViewModel.syncReminders() },
                                                     onItemClick = { id -> remindersRightPaneState = RightPaneState.View(id) },
                                                     onSettingsClick = { navController.navigate("settings") },
@@ -821,6 +838,7 @@ class MainActivity : ComponentActivity() {
                                                             ReminderDetailScreen(
                                                                 item = item,
                                                                 use24HourTime = use24HourTime,
+                                                                dateFormatPreference = dateFormatPreference,
                                                                 onEditClick = { remindersRightPaneState = RightPaneState.Edit(state.id) },
                                                                 onDeleteClick = {
                                                                     remindersViewModel.deleteReminder(state.id)
@@ -835,6 +853,7 @@ class MainActivity : ComponentActivity() {
                                                         AddReminderScreen(
                                                             userId = sharedPrefs.getString("USER_ID", "") ?: "",
                                                             use24HourTime = use24HourTime,
+                                                            dateFormatPreference = dateFormatPreference,
                                                             onSave = { req ->
                                                                 remindersViewModel.addReminder(req)
                                                                 remindersRightPaneState = RightPaneState.Empty
@@ -868,6 +887,7 @@ class MainActivity : ComponentActivity() {
                                         hasUnreadAnnouncements = hasUnreadAnnouncements,
                                         selectedReminderIds = selectedReminderIds,
                                         use24HourTime = use24HourTime,
+                                        dateFormatPreference = dateFormatPreference,
                                         onSyncClick = { remindersViewModel.syncReminders() },
                                         onItemClick = { id -> navController.navigate("reminder_detail/$id") },
                                         onSettingsClick = { navController.navigate("settings") },
@@ -898,6 +918,7 @@ class MainActivity : ComponentActivity() {
                                                     uiState = remindersUiState,
                                                     selectedReminderIds = selectedReminderIds,
                                                     use24HourTime = use24HourTime,
+                                                    dateFormatPreference = dateFormatPreference,
                                                     onNavigateBack = { navController.popBackStack() },
                                                     onItemClick = { id -> archivedRemindersRightPaneState = RightPaneState.View(id) },
                                                     onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
@@ -920,6 +941,7 @@ class MainActivity : ComponentActivity() {
                                                             ReminderDetailScreen(
                                                                 item = item,
                                                                 use24HourTime = use24HourTime,
+                                                                dateFormatPreference = dateFormatPreference,
                                                                 onEditClick = { archivedRemindersRightPaneState = RightPaneState.Edit(state.id) },
                                                                 onDeleteClick = {
                                                                     remindersViewModel.deleteReminder(state.id)
@@ -955,6 +977,7 @@ class MainActivity : ComponentActivity() {
                                         uiState = remindersUiState,
                                         selectedReminderIds = selectedReminderIds,
                                         use24HourTime = use24HourTime,
+                                        dateFormatPreference = dateFormatPreference,
                                         onNavigateBack = { navController.popBackStack() },
                                         onItemClick = { id -> navController.navigate("reminder_detail/$id") },
                                         onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
@@ -987,7 +1010,8 @@ class MainActivity : ComponentActivity() {
                                                     onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
                                                     onClearSelection = { notesViewModel.clearNoteSelection() },
                                                     onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
-                                                    onUnarchiveSelected = { notesViewModel.unarchiveSelectedNotes() }
+                                                    onUnarchiveSelected = { notesViewModel.unarchiveSelectedNotes() },
+                                                    dateFormatPreference = dateFormatPreference
                                                 )
                                             }
                                         },
@@ -1056,7 +1080,8 @@ class MainActivity : ComponentActivity() {
                                         onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
                                         onClearSelection = { notesViewModel.clearNoteSelection() },
                                         onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
-                                        onUnarchiveSelected = { notesViewModel.unarchiveSelectedNotes() }
+                                        onUnarchiveSelected = { notesViewModel.unarchiveSelectedNotes() },
+                                        dateFormatPreference = dateFormatPreference
                                     )
                                 }
                             }
@@ -1077,6 +1102,7 @@ class MainActivity : ComponentActivity() {
                                         ReminderDetailScreen(
                                             item = item,
                                             use24HourTime = use24HourTime,
+                                            dateFormatPreference = dateFormatPreference,
                                             onEditClick = { navController.navigate("edit_reminder/$id") },
                                             onDeleteClick = {
                                                 remindersViewModel.deleteReminder(id)
@@ -1095,6 +1121,7 @@ class MainActivity : ComponentActivity() {
                                         EditReminderScreen(
                                             item = item,
                                             use24HourTime = use24HourTime,
+                                            dateFormatPreference = dateFormatPreference,
                                             onSave = { req -> remindersViewModel.updateReminder(id, req) },
                                             onNavigateBack = { navController.popBackStack() }
                                         )

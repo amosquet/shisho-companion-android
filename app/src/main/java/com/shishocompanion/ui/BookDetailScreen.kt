@@ -27,15 +27,20 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.fromHtml
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Delete
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookDetailScreen(
     item: ReadingListItem,
     onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     onNavigateBack: () -> Unit,
-    isSplitScreen: Boolean = false
+    isSplitScreen: Boolean = false,
+    dateFormatPreference: String = "SYSTEM"
 ) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -50,6 +55,9 @@ fun BookDetailScreen(
                 actions = {
                     IconButton(onClick = onEditClick) {
                         Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.edit))
+                    }
+                    IconButton(onClick = { showDeleteDialog = true }) {
+                        Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.delete))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -117,17 +125,19 @@ fun BookDetailScreen(
                 }
             }
 
-            if (item.isbn.isNotEmpty() || item.startDate.isNotEmpty() || item.endDate.isNotEmpty()) {
+            if (item.isbn.isNotEmpty() || item.startDate.isNotEmpty() || item.endDate.isNotEmpty() || item.completed.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
                 Column(modifier = Modifier.fillMaxWidth()) {
                     if (item.isbn.isNotEmpty()) {
                         Text(stringResource(R.string.isbn_format, item.isbn), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
                     }
                     if (item.startDate.isNotEmpty()) {
-                        Text(stringResource(R.string.started_format, item.startDate ?: ""), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
+                        Text(stringResource(R.string.started_format, formatDateOnly(item.startDate, dateFormatPreference, false)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
                     }
                     if (item.endDate.isNotEmpty()) {
-                        Text(stringResource(R.string.finished_format, item.endDate ?: ""), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
+                        Text(stringResource(R.string.finished_format, formatDateOnly(item.endDate, dateFormatPreference, false)), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
+                    } else if (item.completed.isNotEmpty()) {
+                        Text(stringResource(R.string.finished_format, item.completed), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
                     }
                 }
             }
@@ -168,5 +178,28 @@ fun BookDetailScreen(
                 }
             }
         }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text(stringResource(R.string.delete_book)) },
+            text = { Text(stringResource(R.string.delete_book_confirm)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteClick()
+                    }
+                ) {
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }

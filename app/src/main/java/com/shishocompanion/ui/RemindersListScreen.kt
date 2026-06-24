@@ -39,6 +39,7 @@ fun RemindersListScreen(
     hasUnreadAnnouncements: Boolean,
     selectedReminderIds: Set<String>,
     use24HourTime: Boolean,
+    dateFormatPreference: String,
     onSyncClick: () -> Unit,
     onItemClick: (String) -> Unit,
     onSettingsClick: () -> Unit,
@@ -129,6 +130,7 @@ fun RemindersListScreen(
                         ReminderCard(
                             reminder = reminder, 
                             use24HourTime = use24HourTime, 
+                            dateFormatPreference = dateFormatPreference,
                             isSelected = isSelected,
                             onClick = { 
                                 if (inSelectionMode) onToggleSelection(reminder.id)
@@ -167,7 +169,7 @@ fun RemindersListScreen(
 }
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ReminderCard(reminder: ReminderItem, use24HourTime: Boolean, isSelected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+fun ReminderCard(reminder: ReminderItem, use24HourTime: Boolean, dateFormatPreference: String, isSelected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -193,12 +195,14 @@ fun ReminderCard(reminder: ReminderItem, use24HourTime: Boolean, isSelected: Boo
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Remind at: ${formatReminderTime(reminder.remindAt, use24HourTime)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary
-            )
+            if (reminder.remindAt.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Remind at: ${formatReminderTime(reminder.remindAt, use24HourTime, dateFormatPreference)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (reminder.isSent) "Status: Sent" else "Status: Pending",

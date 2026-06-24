@@ -22,7 +22,8 @@ fun DateTimePickerField(
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    use24HourTime: Boolean = false
+    use24HourTime: Boolean = false,
+    dateFormatPreference: String = "SYSTEM"
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -68,7 +69,15 @@ fun DateTimePickerField(
         is24Hour = use24HourTime
     )
 
-    val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
+    val dateFormatter = remember(dateFormatPreference) { 
+        val pattern = when (dateFormatPreference) {
+            "DD_MM_YYYY" -> "dd-MM-yyyy"
+            "MM_DD_YYYY" -> "MM-dd-yyyy"
+            "YYYY_MM_DD" -> "yyyy-MM-dd"
+            else -> "MMM dd, yyyy"
+        }
+        SimpleDateFormat(pattern, Locale.getDefault()) 
+    }
     val timeFormatter = remember(use24HourTime) { 
         SimpleDateFormat(if (use24HourTime) "HH:mm" else "h:mm a", Locale.getDefault()) 
     }

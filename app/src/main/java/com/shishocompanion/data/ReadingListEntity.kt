@@ -21,5 +21,6 @@ data class ReadingListEntity(
     val endDate: String,
     val created: String,
     val updated: String,
+    val completed: String,
     val isPendingSync: Boolean = false // True if added locally and needs upload
 )

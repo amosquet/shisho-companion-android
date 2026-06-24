@@ -53,6 +53,12 @@ class ReadingListViewModel(
         }
     }
 
+    fun deleteItem(id: String) {
+        viewModelScope.launch {
+            repository.deleteItem(id)
+        }
+    }
+
     fun getItemById(id: String): ReadingListItem? {
         val currentState = uiState.value
         if (currentState is ReadingListUiState.Success) {

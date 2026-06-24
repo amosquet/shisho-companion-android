@@ -46,7 +46,8 @@ fun NoteDetailScreen(
     onArchiveClick: () -> Unit,
     onTextUpdate: (String) -> Unit,
     onNavigateBack: () -> Unit,
-    isSplitScreen: Boolean = false
+    isSplitScreen: Boolean = false,
+    dateFormatPreference: String = "SYSTEM"
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var enlargedImageUrl by remember { mutableStateOf<String?>(null) }
@@ -101,14 +102,14 @@ fun NoteDetailScreen(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     if (item.created.isNotEmpty()) {
                         Text(
-                            text = "Created: ${formatDateOnly(item.created)}",
+                            text = "Created: ${formatDateOnly(item.created, dateFormatPreference)}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     if (item.updated.isNotEmpty()) {
                         Text(
-                            text = "Updated: ${formatDateOnly(item.updated)}",
+                            text = "Updated: ${formatDateOnly(item.updated, dateFormatPreference)}",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

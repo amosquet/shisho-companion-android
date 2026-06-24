@@ -127,7 +127,7 @@ class NoteRepository(
 
             // 2. Fetch fresh remote list
             val response: PocketBaseListResponse<NoteItem> = 
-                client.get("$baseUrl/api/collections/$collectionName/records") {
+                client.get("$baseUrl/api/collections/$collectionName/records?perPage=500") {
                     authToken?.let { header("Authorization", "Bearer $it") }
                 }.body()
 

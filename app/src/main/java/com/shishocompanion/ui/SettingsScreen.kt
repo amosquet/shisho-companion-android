@@ -32,6 +32,8 @@ fun SettingsScreen(
     onThemePreferenceChanged: (String) -> Unit,
     timeFormatPreference: String,
     onTimeFormatPreferenceChanged: (String) -> Unit,
+    dateFormatPreference: String,
+    onDateFormatPreferenceChanged: (String) -> Unit,
     languagePreference: String,
     onLanguagePreferenceChanged: (String) -> Unit,
     sendRemindersToDiscordPreference: Boolean,
@@ -214,6 +216,66 @@ fun SettingsScreen(
                                     onClick = {
                                         onTimeFormatPreferenceChanged("24_HOUR")
                                         timeFormatDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(R.string.date_format),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        var dateFormatDropdownExpanded by remember { mutableStateOf(false) }
+                        Box {
+                            TextButton(onClick = { dateFormatDropdownExpanded = true }) {
+                                Text(
+                                    text = when (dateFormatPreference) {
+                                        "DD_MM_YYYY" -> stringResource(R.string.format_dd_mm_yyyy)
+                                        "MM_DD_YYYY" -> stringResource(R.string.format_mm_dd_yyyy)
+                                        "YYYY_MM_DD" -> stringResource(R.string.format_yyyy_mm_dd)
+                                        else -> stringResource(R.string.system_default)
+                                    }
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = dateFormatDropdownExpanded,
+                                onDismissRequest = { dateFormatDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.system_default)) },
+                                    onClick = {
+                                        onDateFormatPreferenceChanged("SYSTEM")
+                                        dateFormatDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.format_dd_mm_yyyy)) },
+                                    onClick = {
+                                        onDateFormatPreferenceChanged("DD_MM_YYYY")
+                                        dateFormatDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.format_mm_dd_yyyy)) },
+                                    onClick = {
+                                        onDateFormatPreferenceChanged("MM_DD_YYYY")
+                                        dateFormatDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(R.string.format_yyyy_mm_dd)) },
+                                    onClick = {
+                                        onDateFormatPreferenceChanged("YYYY_MM_DD")
+                                        dateFormatDropdownExpanded = false
                                     }
                                 )
                             }

@@ -30,7 +30,8 @@ fun ArchivedNotesScreen(
     onToggleSelection: (String) -> Unit,
     onClearSelection: () -> Unit,
     onDeleteSelected: () -> Unit,
-    onUnarchiveSelected: () -> Unit
+    onUnarchiveSelected: () -> Unit,
+    dateFormatPreference: String = "SYSTEM"
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val inSelectionMode = selectedNoteIds.isNotEmpty()
@@ -103,6 +104,7 @@ fun ArchivedNotesScreen(
                                 NoteItemCard(
                                     item = note, 
                                     isSelected = selectedNoteIds.contains(note.id),
+                                    dateFormatPreference = dateFormatPreference,
                                     onClick = { 
                                         if (inSelectionMode) onToggleSelection(note.id)
                                         else onItemClick(note.id)

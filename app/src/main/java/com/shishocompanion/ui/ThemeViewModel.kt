@@ -36,11 +36,18 @@ class ThemeViewModel(
         return prefs.getString("TIME_FORMAT_PREFERENCE", "SYSTEM") ?: "SYSTEM"
     }
 
+    private fun getDateFormatPreferenceWithMigration(prefs: SharedPreferences): String {
+        return prefs.getString("DATE_FORMAT_PREFERENCE", "SYSTEM") ?: "SYSTEM"
+    }
+
     private val _themePreference = MutableStateFlow(getThemePreferenceWithMigration(sharedPrefs))
     val themePreference: StateFlow<String> = _themePreference.asStateFlow()
 
     private val _timeFormatPreference = MutableStateFlow(getTimeFormatPreferenceWithMigration(sharedPrefs))
     val timeFormatPreference: StateFlow<String> = _timeFormatPreference.asStateFlow()
+
+    private val _dateFormatPreference = MutableStateFlow(getDateFormatPreferenceWithMigration(sharedPrefs))
+    val dateFormatPreference: StateFlow<String> = _dateFormatPreference.asStateFlow()
 
     private val _languagePreference = MutableStateFlow(sharedPrefs.getString("LANGUAGE_PREFERENCE", "SYSTEM") ?: "SYSTEM")
     val languagePreference: StateFlow<String> = _languagePreference.asStateFlow()
@@ -86,6 +93,27 @@ class ThemeViewModel(
                         general = currentGeneral.copy(timeFormat = format)
                     ) ?: com.shishocompanion.data.Preferences(
                         general = com.shishocompanion.data.GeneralPreferences(timeFormat = format)
+                    )
+                    repository.updatePreferences(newPrefs)
+                }
+            }
+        }
+    }
+
+    fun setDateFormatPreference(format: String) {
+        sharedPrefs.edit().putString("DATE_FORMAT_PREFERENCE", format).apply()
+        _dateFormatPreference.value = format
+        
+        viewModelScope.launch {
+            if (!repository.authToken.isNullOrEmpty()) {
+                val currentMeResult = repository.getMe()
+                if (currentMeResult.isSuccess) {
+                    val me = currentMeResult.getOrNull()
+                    val currentGeneral = me?.preferences?.general ?: com.shishocompanion.data.GeneralPreferences()
+                    val newPrefs = me?.preferences?.copy(
+                        general = currentGeneral.copy(dateFormat = format)
+                    ) ?: com.shishocompanion.data.Preferences(
+                        general = com.shishocompanion.data.GeneralPreferences(dateFormat = format)
                     )
                     repository.updatePreferences(newPrefs)
                 }
@@ -143,6 +171,7 @@ class ThemeViewModel(
     fun reloadPreferences() {
         _themePreference.value = getThemePreferenceWithMigration(sharedPrefs)
         _timeFormatPreference.value = getTimeFormatPreferenceWithMigration(sharedPrefs)
+        _dateFormatPreference.value = sharedPrefs.getString("DATE_FORMAT_PREFERENCE", "SYSTEM") ?: "SYSTEM"
         _sendRemindersToDiscordPreference.value = sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false)
         _languagePreference.value = sharedPrefs.getString("LANGUAGE_PREFERENCE", "SYSTEM") ?: "SYSTEM"
         _splitScreenPreference.value = sharedPrefs.getBoolean("SPLIT_SCREEN_ENABLED", true)

@@ -83,6 +83,7 @@ class ReminderRepository(
                     client.get("$baseUrl/api/collections/$collectionName/records") {
                         authToken?.let { header("Authorization", "Bearer $it") }
                         parameter("filter", "user_id = '$uid'")
+                        parameter("perPage", 500)
                     }.body()
 
                 dao.clearSyncedReminders()

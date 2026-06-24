@@ -15,17 +15,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import com.shishocompanion.data.ReminderItem
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReminderDetailScreen(
     item: ReminderItem,
-    use24HourTime: Boolean,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onNavigateBack: () -> Unit,
-    isSplitScreen: Boolean = false
+    isSplitScreen: Boolean = false,
+    use24HourTime: Boolean = false,
+    dateFormatPreference: String = "SYSTEM"
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -66,8 +68,9 @@ fun ReminderDetailScreen(
             Text(item.reminderText, style = MaterialTheme.typography.bodyLarge)
             Spacer(modifier = Modifier.height(16.dp))
             
-            Text(stringResource(R.string.remind_at), style = MaterialTheme.typography.labelSmall)
-            Text(formatReminderTime(item.remindAt, use24HourTime), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.remind_at), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(formatReminderTime(item.remindAt, use24HourTime, dateFormatPreference), style = MaterialTheme.typography.bodyMedium)
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(stringResource(R.string.status), style = MaterialTheme.typography.labelSmall)

@@ -69,6 +69,8 @@
     <string name="delete_reminder">Delete Reminder</string>
     <string name="delete_selected_notes">Delete Selected Notes</string>
     <string name="delete_selected_reminders">Delete Selected Reminders</string>
+    <string name="delete_book">Delete Book</string>
+    <string name="delete_book_confirm">Are you sure you want to delete this book?</string>
     <string name="discord_integration">Discord Integration</string>
     <string name="email">Email</string>
     <string name="english">English</string>
@@ -96,6 +98,10 @@
     <string name="japanese">日本語</string>
     <string name="language">Language</string>
     <string name="time_format">Time Format</string>
+    <string name="date_format">Date Format</string>
+    <string name="format_dd_mm_yyyy">dd-mm-yyyy</string>
+    <string name="format_mm_dd_yyyy">mm-dd-yyyy</string>
+    <string name="format_yyyy_mm_dd">yyyy-mm-dd</string>
     <string name="theme">Theme</string>
     <string name="account">Account</string>
     <string name="general">General</string>

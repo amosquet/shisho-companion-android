@@ -19,7 +19,8 @@ fun EditReminderScreen(
     use24HourTime: Boolean,
     onSave: (CreateReminderRequest) -> Unit,
     onNavigateBack: () -> Unit,
-    isSplitScreen: Boolean = false
+    isSplitScreen: Boolean = false,
+    dateFormatPreference: String = "SYSTEM"
 ) {
     var reminderText by remember { mutableStateOf(item.reminderText) }
     var remindAt by remember { mutableStateOf(item.remindAt) }
@@ -57,6 +58,7 @@ fun EditReminderScreen(
                 onValueChange = { remindAt = it },
                 label = "Remind At",
                 use24HourTime = use24HourTime,
+                dateFormatPreference = dateFormatPreference,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))

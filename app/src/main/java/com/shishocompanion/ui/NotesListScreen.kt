@@ -37,7 +37,8 @@ fun NotesListScreen(
     onToggleSelection: (String) -> Unit,
     onClearSelection: () -> Unit,
     onDeleteSelected: () -> Unit,
-    onArchiveSelected: () -> Unit
+    onArchiveSelected: () -> Unit,
+    dateFormatPreference: String = "SYSTEM"
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val inSelectionMode = selectedNoteIds.isNotEmpty()
@@ -120,8 +121,9 @@ fun NotesListScreen(
                             items(filteredNotes, key = { it.id }) { item ->
                                 val isSelected = selectedNoteIds.contains(item.id)
                                 NoteItemCard(
-                                    item = item, 
+                                    item = item,
                                     isSelected = isSelected,
+                                    dateFormatPreference = dateFormatPreference,
                                     onClick = { 
                                         if (inSelectionMode) onToggleSelection(item.id)
                                         else onItemClick(item.id)
@@ -162,7 +164,7 @@ fun NotesListScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun NoteItemCard(item: NoteItem, isSelected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+fun NoteItemCard(item: NoteItem, isSelected: Boolean, dateFormatPreference: String, onClick: () -> Unit, onLongClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -244,7 +246,7 @@ fun NoteItemCard(item: NoteItem, isSelected: Boolean, onClick: () -> Unit, onLon
             if (item.updated.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Updated: ${formatDateOnly(item.updated)}",
+                    text = "Updated: ${formatDateOnly(item.updated, dateFormatPreference)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

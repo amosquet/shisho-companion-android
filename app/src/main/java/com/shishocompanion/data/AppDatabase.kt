@@ -13,7 +13,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import java.security.SecureRandom
 import android.util.Base64
 
-@Database(entities = [ReadingListEntity::class, NoteEntity::class, ReminderEntity::class], version = 8, exportSchema = false)
+@Database(entities = [ReadingListEntity::class, NoteEntity::class, ReminderEntity::class], version = 9, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun readingListDao(): ReadingListDao
     abstract fun noteDao(): NoteDao
@@ -26,6 +26,12 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE reminders ADD COLUMN isPendingSync INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE reading_list ADD COLUMN completed TEXT NOT NULL DEFAULT ''")
             }
         }
 
@@ -51,6 +57,22 @@ abstract class AppDatabase : RoomDatabase() {
                     passphrase = Base64.encodeToString(bytes, Base64.NO_WRAP)
                     sharedPrefs.edit().putString("db_passphrase", passphrase).apply()
                 }
+
+                val dbFile = context.getDatabasePath("reading_list_database")
+                if (dbFile.exists()) {
+                    try {
+                        val header = ByteArray(16)
+                        dbFile.inputStream().use { it.read(header) }
+                        if (String(header).startsWith("SQLite format 3")) {
+                            dbFile.delete()
+                            context.getDatabasePath("reading_list_database-journal").delete()
+                            context.getDatabasePath("reading_list_database-wal").delete()
+                            context.getDatabasePath("reading_list_database-shm").delete()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
                 
                 System.loadLibrary("sqlcipher")
                 val factory = SupportOpenHelperFactory(passphrase.toByteArray(Charsets.UTF_8))
@@ -61,7 +83,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "reading_list_database"
                 )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_7_8)
+                .addMigrations(MIGRATION_7_8, MIGRATION_8_9)
                 .fallbackToDestructiveMigration(true)
                 .build()
                 INSTANCE = instance

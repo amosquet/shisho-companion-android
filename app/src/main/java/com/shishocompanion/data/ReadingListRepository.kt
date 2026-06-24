@@ -35,6 +35,7 @@ class ReadingListRepository(
                 append("isbn", req.isbn)
                 append("startDate", req.startDate)
                 append("endDate", req.endDate)
+                append("completed", req.completed)
                 
                 req.coverBytes?.let { bytes ->
                     val filename = req.coverFilename ?: "cover.jpg"
@@ -178,8 +179,16 @@ class ReadingListRepository(
                     startDate = it.startDate,
                     endDate = it.endDate,
                     created = it.created,
-                    updated = it.updated
+                    updated = it.updated,
+                    completed = it.completed
                 )
+            }.sortedByDescending { item ->
+                when {
+                    item.endDate.isNotEmpty() -> item.endDate
+                    item.startDate.isNotEmpty() -> item.startDate
+                    item.completed.isNotEmpty() && item.publishDate.isNotEmpty() -> item.publishDate
+                    else -> item.created
+                }
             }
         }
     }
@@ -200,7 +209,8 @@ class ReadingListRepository(
                     status = pending.status,
                     isbn = pending.isbn,
                     startDate = pending.startDate,
-                    endDate = pending.endDate
+                    endDate = pending.endDate,
+                    completed = pending.completed
                 )
                 try {
                     val remoteItem: ReadingListItem = client.post("$baseUrl/api/collections/$collectionName/records") {
@@ -219,7 +229,7 @@ class ReadingListRepository(
 
             // 2. Fetch fresh remote list
             val response: PocketBaseListResponse<ReadingListItem> = 
-                client.get("$baseUrl/api/collections/$collectionName/records") {
+                client.get("$baseUrl/api/collections/$collectionName/records?perPage=500") {
                     authToken?.let { header("Authorization", "Bearer $it") }
                 }.body()
 
@@ -243,6 +253,7 @@ class ReadingListRepository(
                     endDate = it.endDate,
                     created = it.created,
                     updated = it.updated,
+                    completed = it.completed,
                     isPendingSync = false
                 )
             }
@@ -284,6 +295,7 @@ class ReadingListRepository(
             endDate = item.endDate,
             created = "",
             updated = "",
+            completed = item.completed,
             isPendingSync = true
         )
         dao.insertItem(newEntity)
@@ -307,7 +319,8 @@ class ReadingListRepository(
                     status = req.status,
                     isbn = req.isbn,
                     startDate = req.startDate,
-                    endDate = req.endDate
+                    endDate = req.endDate,
+                    completed = req.completed
                 ))
             }
         } else {
@@ -339,9 +352,25 @@ class ReadingListRepository(
                         status = req.status,
                         isbn = req.isbn,
                         startDate = req.startDate,
-                        endDate = req.endDate
+                        endDate = req.endDate,
+                        completed = req.completed
                     ))
                 }
+            }
+        }
+    }
+
+    suspend fun deleteItem(id: String) {
+        if (id.startsWith("local_")) {
+            dao.deleteById(id)
+        } else {
+            try {
+                client.delete("$baseUrl/api/collections/$collectionName/records/$id") {
+                    authToken?.let { header("Authorization", "Bearer $it") }
+                }
+                dao.deleteById(id)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

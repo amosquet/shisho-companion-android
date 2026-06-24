@@ -30,7 +30,8 @@ data class ReadingListItem(
     val collectionId: String = "",
     val collectionName: String = "",
     val created: String = "",
-    val updated: String = ""
+    val updated: String = "",
+    val completed: String = ""
 )
 
 @Serializable
@@ -45,6 +46,7 @@ data class CreateReadingListItemRequest(
     val isbn: String = "",
     val startDate: String = "",
     val endDate: String = "",
+    val completed: String = "",
     @kotlinx.serialization.Transient var coverBytes: ByteArray? = null,
     @kotlinx.serialization.Transient var coverFilename: String? = null
 )
@@ -128,6 +130,7 @@ data class CompanionPreferences(
 data class GeneralPreferences(
     val language: String = "en",
     @SerialName("time_format") val timeFormat: String = "SYSTEM",
+    @SerialName("date_format") val dateFormat: String = "SYSTEM",
     @SerialName("send_reminders_to_discord") val sendRemindersToDiscord: Boolean = false
 )
 

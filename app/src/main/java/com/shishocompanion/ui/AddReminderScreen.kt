@@ -18,7 +18,8 @@ fun AddReminderScreen(
     use24HourTime: Boolean,
     onSave: (CreateReminderRequest) -> Unit,
     onNavigateBack: () -> Unit,
-    isSplitScreen: Boolean = false
+    isSplitScreen: Boolean = false,
+    dateFormatPreference: String = "SYSTEM"
 ) {
     var reminderText by remember { mutableStateOf("") }
     var remindAt by remember { mutableStateOf("") } // expecting ISO like 2026-05-24 10:00:00.000Z for now
@@ -55,6 +56,7 @@ fun AddReminderScreen(
                 onValueChange = { remindAt = it },
                 label = "Remind At",
                 use24HourTime = use24HourTime,
+                dateFormatPreference = dateFormatPreference,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))

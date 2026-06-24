@@ -30,7 +30,8 @@ fun ArchivedRemindersScreen(
     onItemClick: (String) -> Unit,
     onToggleSelection: (String) -> Unit,
     onClearSelection: () -> Unit,
-    onDeleteSelected: () -> Unit
+    onDeleteSelected: () -> Unit,
+    dateFormatPreference: String = "SYSTEM"
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val inSelectionMode = selectedReminderIds.isNotEmpty()
@@ -93,6 +94,7 @@ fun ArchivedRemindersScreen(
                             reminder = reminder, 
                             use24HourTime = use24HourTime, 
                             isSelected = isSelected,
+                            dateFormatPreference = dateFormatPreference,
                             onClick = { 
                                 if (inSelectionMode) onToggleSelection(reminder.id)
                                 else onItemClick(reminder.id)
