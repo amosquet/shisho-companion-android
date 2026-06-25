@@ -46,7 +46,7 @@ class AnnouncementsViewModel(
                     _hasUnreadAnnouncement.value = false
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Exception handled silently
             }
         }
     }

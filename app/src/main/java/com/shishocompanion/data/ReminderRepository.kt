@@ -70,10 +70,10 @@ class ReminderRepository(
                             dao.updateReminder(pending.copy(isPendingSync = false))
                         }
                     } else {
-                        println("Failed to sync reminder: ${response.status}")
+                        // Sync failure handled silently
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    // Exception handled silently
                 }
             }
 
@@ -102,7 +102,7 @@ class ReminderRepository(
                 dao.insertReminders(entities)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
         }
     }
 
@@ -122,7 +122,7 @@ class ReminderRepository(
         try {
             sync()
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
         }
     }
 
@@ -138,7 +138,7 @@ class ReminderRepository(
             try {
                 sync()
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Exception handled silently
             }
         }
     }
@@ -153,7 +153,7 @@ class ReminderRepository(
                 }
                 dao.deleteReminderById(id)
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Exception handled silently
             }
         }
     }

@@ -26,7 +26,7 @@ class ReminderAlarmReceiver : BroadcastReceiver() {
                     dao.updateReminder(reminder.copy(isSent = true, isPendingSync = true))
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Exception handled silently
             } finally {
                 pendingResult.finish()
             }

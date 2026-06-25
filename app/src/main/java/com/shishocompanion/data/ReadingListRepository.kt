@@ -65,7 +65,7 @@ class ReadingListRepository(
                 Result.failure(Exception("Login failed: ${response.status.value} - $errorBody"))
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
             Result.failure(e)
         }
     }
@@ -83,7 +83,7 @@ class ReadingListRepository(
                 Result.failure(Exception("Failed to register: ${response.status.value} - $errorBody"))
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
             Result.failure(e)
         }
     }
@@ -106,7 +106,7 @@ class ReadingListRepository(
                 Result.failure(Exception("Failed to request PIN"))
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
             Result.failure(e)
         }
     }
@@ -129,7 +129,7 @@ class ReadingListRepository(
                 Result.failure(Exception("Failed to link Discord"))
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
             Result.failure(e)
         }
     }
@@ -150,7 +150,7 @@ class ReadingListRepository(
                 Result.failure(Exception("Failed to unlink Discord"))
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
             Result.failure(e)
         }
     }
@@ -222,7 +222,7 @@ class ReadingListRepository(
                     // Delete the local stub, we will fetch the true remote version in step 2
                     dao.deleteById(pending.id)
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    // Exception handled silently
                     // If upload fails, keep it pending
                 }
             }
@@ -259,7 +259,7 @@ class ReadingListRepository(
             }
             dao.insertItems(entities)
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
         }
     }
 
@@ -274,7 +274,7 @@ class ReadingListRepository(
                 sync()
                 return
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Exception handled silently
             }
         }
         
@@ -303,7 +303,7 @@ class ReadingListRepository(
         try {
             sync()
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
         }
     }
 
@@ -340,7 +340,7 @@ class ReadingListRepository(
                 }
                 sync()
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Exception handled silently
                 // Fallback to update locally if offline
                 val existing = dao.getById(id)
                 if (existing != null) {
@@ -370,7 +370,7 @@ class ReadingListRepository(
                 }
                 dao.deleteById(id)
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Exception handled silently
             }
         }
     }
@@ -383,7 +383,7 @@ class ReadingListRepository(
             }.body()
             Result.success(response)
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
             Result.failure(e)
         }
     }
@@ -399,7 +399,7 @@ class ReadingListRepository(
             }.body()
             Result.success(response)
         } catch (e: Exception) {
-            e.printStackTrace()
+            // Exception handled silently
             Result.failure(e)
         }
     }
