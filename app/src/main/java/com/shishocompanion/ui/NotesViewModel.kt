@@ -175,7 +175,7 @@ class NotesViewModel(
             }
             return file.absolutePath
         } catch (e: Exception) {
-            // Exception handled silently
+            e.printStackTrace()
             return null
         }
     }

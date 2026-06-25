@@ -67,7 +67,7 @@ object NotificationHelper {
                 )
             }
         } catch (e: SecurityException) {
-            // Exception handled silently
+            e.printStackTrace()
             // Log missing SCHEDULE_EXACT_ALARM permission
         }
     }
@@ -97,7 +97,7 @@ object NotificationHelper {
                 notify(reminderId.hashCode(), builder.build())
             }
         } catch (e: SecurityException) {
-            // Exception handled silently
+            e.printStackTrace()
             // Missing POST_NOTIFICATIONS permission
         }
     }

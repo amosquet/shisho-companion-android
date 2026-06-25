@@ -118,10 +118,10 @@ class NoteRepository(
                     if (response.status.isSuccess()) {
                         dao.deleteById(pending.id)
                     } else {
-                        // Sync failure handled silently
+                        println("Failed to sync note: ${response.status}")
                     }
                 } catch (e: Exception) {
-                    // Exception handled silently
+                    e.printStackTrace()
                 }
             }
 
@@ -148,7 +148,7 @@ class NoteRepository(
             }
             dao.insertNotes(entities)
         } catch (e: Exception) {
-            // Exception handled silently
+            e.printStackTrace()
         }
     }
 
@@ -169,7 +169,7 @@ class NoteRepository(
         try {
             sync()
         } catch (e: Exception) {
-            // Exception handled silently
+            e.printStackTrace()
         }
     }
 
@@ -215,7 +215,7 @@ class NoteRepository(
                 }
                 sync()
             } catch (e: Exception) {
-                // Exception handled silently
+                e.printStackTrace()
                 val existing = dao.getById(id)
                 if (existing != null) {
                     dao.insertNote(existing.copy(
@@ -239,7 +239,7 @@ class NoteRepository(
                 }
                 dao.deleteById(id)
             } catch (e: Exception) {
-                // Exception handled silently
+                e.printStackTrace()
             }
         }
     }

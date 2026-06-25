@@ -70,7 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
                             context.getDatabasePath("reading_list_database-shm").delete()
                         }
                     } catch (e: Exception) {
-                        // Exception handled silently
+                        e.printStackTrace()
                     }
                 }
                 
