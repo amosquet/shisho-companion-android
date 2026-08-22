@@ -93,11 +93,17 @@ import kotlinx.serialization.json.Json
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
 
+// Route string constants for type-safe navigation route matching
+private val ROUTE_READING_LIST = ReadingList::class.qualifiedName!!
+private val ROUTE_NOTES = Notes::class.qualifiedName!!
+private val ROUTE_REMINDERS = Reminders::class.qualifiedName!!
+private val MAIN_TABS = listOf(ROUTE_READING_LIST, ROUTE_NOTES, ROUTE_REMINDERS)
+
 private fun getTabIndex(route: String?): Int {
     return when (route?.substringBefore("/")) {
-        "list" -> 0
-        "notes" -> 1
-        "reminders" -> 2
+        ROUTE_READING_LIST -> 0
+        ROUTE_NOTES -> 1
+        ROUTE_REMINDERS -> 2
         else -> -1
     }
 }
@@ -275,7 +281,7 @@ class MainActivity : ComponentActivity() {
 
                     Scaffold(
                         floatingActionButton = {
-                            if (currentDestination in listOf("list", "notes", "reminders")) {
+                            if (currentDestination in MAIN_TABS) {
                                 var expanded by remember { mutableStateOf(false) }
                                 Box {
                                     FloatingActionButton(
@@ -298,7 +304,7 @@ class MainActivity : ComponentActivity() {
                                             onClick = {
                                                 expanded = false
                                                 if (isLargeScreen && themeViewModel.splitScreenPreference.value) {
-                                                    if (currentDestination == "list") listRightPaneState = RightPaneState.Add
+                                                    if (currentDestination == ROUTE_READING_LIST) listRightPaneState = RightPaneState.Add
                                                     else {
                                                         navController.navigate(ReadingList) { popUpTo<ReadingList>() { saveState = true }; launchSingleTop = true; restoreState = true }
                                                         listRightPaneState = RightPaneState.Add
@@ -313,7 +319,7 @@ class MainActivity : ComponentActivity() {
                                             onClick = {
                                                 expanded = false
                                                 if (isLargeScreen && themeViewModel.splitScreenPreference.value) {
-                                                    if (currentDestination == "notes") notesRightPaneState = RightPaneState.Add
+                                                    if (currentDestination == ROUTE_NOTES) notesRightPaneState = RightPaneState.Add
                                                     else {
                                                         navController.navigate(Notes) { popUpTo<ReadingList>() { saveState = true }; launchSingleTop = true; restoreState = true }
                                                         notesRightPaneState = RightPaneState.Add
@@ -328,7 +334,7 @@ class MainActivity : ComponentActivity() {
                                             onClick = {
                                                 expanded = false
                                                 if (isLargeScreen && themeViewModel.splitScreenPreference.value) {
-                                                    if (currentDestination == "reminders") remindersRightPaneState = RightPaneState.Add
+                                                    if (currentDestination == ROUTE_REMINDERS) remindersRightPaneState = RightPaneState.Add
                                                     else {
                                                         navController.navigate(Reminders) { popUpTo<ReadingList>() { saveState = true }; launchSingleTop = true; restoreState = true }
                                                         remindersRightPaneState = RightPaneState.Add
@@ -343,12 +349,12 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         bottomBar = {
-                            if (currentDestination in listOf("list", "notes", "reminders")) {
+                            if (currentDestination in MAIN_TABS) {
                                 NavigationBar {
                                     NavigationBarItem(
                                         icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = stringResource(R.string.reading_list)) },
                                         label = { Text(stringResource(R.string.list_label)) },
-                                        selected = currentDestination == "list",
+                                        selected = currentDestination == ROUTE_READING_LIST,
                                         onClick = {
                                             navController.navigate(ReadingList) {
                                                 popUpTo<ReadingList>() { saveState = true }
@@ -360,7 +366,7 @@ class MainActivity : ComponentActivity() {
                                     NavigationBarItem(
                                         icon = { Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.notes)) },
                                         label = { Text(stringResource(R.string.notes)) },
-                                        selected = currentDestination == "notes",
+                                        selected = currentDestination == ROUTE_NOTES,
                                         onClick = {
                                             navController.navigate(Notes) {
                                                 popUpTo<ReadingList>() { saveState = true }
@@ -372,7 +378,7 @@ class MainActivity : ComponentActivity() {
                                     NavigationBarItem(
                                         icon = { Icon(Icons.Filled.Notifications, contentDescription = stringResource(R.string.reminders)) },
                                         label = { Text(stringResource(R.string.reminders)) },
-                                        selected = currentDestination == "reminders",
+                                        selected = currentDestination == ROUTE_REMINDERS,
                                         onClick = {
                                             navController.navigate(Reminders) {
                                                 popUpTo<ReadingList>() { saveState = true }
