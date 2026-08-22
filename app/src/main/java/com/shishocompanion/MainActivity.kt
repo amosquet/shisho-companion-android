@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -48,6 +50,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.shishocompanion.navigation.*
+import androidx.navigation.toRoute
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.shishocompanion.data.AppDatabase
@@ -86,6 +90,8 @@ import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import dagger.hilt.android.AndroidEntryPoint
+import androidx.hilt.navigation.compose.hiltViewModel
 
 private fun getTabIndex(route: String?): Int {
     return when (route?.substringBefore("/")) {
@@ -104,6 +110,7 @@ sealed interface RightPaneState {
 }
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val intentAction = MutableStateFlow<String?>(null)
 
@@ -145,40 +152,6 @@ class MainActivity : ComponentActivity() {
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
-        
-        val viewModelFactory = object : ViewModelProvider.Factory {
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                if (modelClass.isAssignableFrom(ReadingListViewModel::class.java)) {
-                    @Suppress("UNCHECKED_CAST")
-                    return ReadingListViewModel(repository) as T
-                }
-                if (modelClass.isAssignableFrom(NotesViewModel::class.java)) {
-                    @Suppress("UNCHECKED_CAST")
-                    return NotesViewModel(application, noteRepository) as T
-                }
-                if (modelClass.isAssignableFrom(RemindersViewModel::class.java)) {
-                    @Suppress("UNCHECKED_CAST")
-                    return RemindersViewModel(application, reminderRepository) as T
-                }
-                if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
-                    @Suppress("UNCHECKED_CAST")
-                    return LoginViewModel(repository, noteRepository, reminderRepository, database, sharedPrefs) as T
-                }
-                if (modelClass.isAssignableFrom(ThemeViewModel::class.java)) {
-                    @Suppress("UNCHECKED_CAST")
-                    return ThemeViewModel(repository, sharedPrefs) as T
-                }
-                if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
-                    @Suppress("UNCHECKED_CAST")
-                    return SettingsViewModel(repository, sharedPrefs) as T
-                }
-                if (modelClass.isAssignableFrom(AnnouncementsViewModel::class.java)) {
-                    @Suppress("UNCHECKED_CAST")
-                    return AnnouncementsViewModel(httpClient, sharedPrefs) as T
-                }
-                throw IllegalArgumentException("Unknown ViewModel class")
-            }
-        }
 
         val imageLoader = coil.ImageLoader.Builder(applicationContext)
             .okHttpClient {
@@ -198,7 +171,7 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         setContent {
-            val themeViewModel: ThemeViewModel = viewModel(factory = viewModelFactory)
+            val themeViewModel: ThemeViewModel = hiltViewModel()
             val themePreference by themeViewModel.themePreference.collectAsState()
             val timeFormatPreference by themeViewModel.timeFormatPreference.collectAsState()
             val dateFormatPreference by themeViewModel.dateFormatPreference.collectAsState()
@@ -236,16 +209,16 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     
-                    val loginViewModel: LoginViewModel = viewModel(factory = viewModelFactory)
+                    val loginViewModel: LoginViewModel = hiltViewModel()
                     val loginUiState by loginViewModel.uiState.collectAsState()
 
-                    val listViewModel: ReadingListViewModel = viewModel(factory = viewModelFactory)
+                    val listViewModel: ReadingListViewModel = hiltViewModel()
                     val listUiState by listViewModel.uiState.collectAsState()
 
-                    val notesViewModel: NotesViewModel = viewModel(factory = viewModelFactory)
+                    val notesViewModel: NotesViewModel = hiltViewModel()
                     val notesUiState by notesViewModel.uiState.collectAsState()
 
-                    val remindersViewModel: RemindersViewModel = viewModel(factory = viewModelFactory)
+                    val remindersViewModel: RemindersViewModel = hiltViewModel()
                     val remindersUiState by remindersViewModel.uiState.collectAsState()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentDestination = navBackStackEntry?.destination?.route
@@ -254,18 +227,18 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(currentIntentAction, currentDestination) {
                         if (currentIntentAction == "com.shishocompanion.ADD_NOTE") {
                             if (currentDestination != null && currentDestination != "login") {
-                                navController.navigate("notes") {
-                                    popUpTo("list") { saveState = true }
+                                navController.navigate(Notes) {
+                                    popUpTo<ReadingList>() { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
-                                navController.navigate("add_note")
+                                navController.navigate(AddNote)
                                 intentAction.value = null
                             }
                         }
                     }
                     
-                    val announcementsViewModel: AnnouncementsViewModel = viewModel(factory = viewModelFactory)
+                    val announcementsViewModel: AnnouncementsViewModel = hiltViewModel()
                     val hasUnreadAnnouncements by announcementsViewModel.hasUnreadAnnouncement.collectAsState()
                     val announcements by announcementsViewModel.announcements.collectAsState()
 
@@ -274,6 +247,31 @@ class MainActivity : ComponentActivity() {
                     var remindersRightPaneState by remember { mutableStateOf<RightPaneState>(RightPaneState.Empty) }
                     var archivedNotesRightPaneState by remember { mutableStateOf<RightPaneState>(RightPaneState.Empty) }
                     var archivedRemindersRightPaneState by remember { mutableStateOf<RightPaneState>(RightPaneState.Empty) }
+
+                    val showSessionExpired by loginViewModel.showSessionExpiredDialog.collectAsState()
+                    if (showSessionExpired) {
+                        AlertDialog(
+                            onDismissRequest = { loginViewModel.dismissSessionExpiredDialog() },
+                            title = { Text(stringResource(R.string.app_name)) },
+                            text = { Text("Your session has expired. Please log in again to sync your data.") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    loginViewModel.dismissSessionExpiredDialog()
+                                    loginViewModel.logout()
+                                    navController.navigate(Login) {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }) {
+                                    Text("Log In")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { loginViewModel.dismissSessionExpiredDialog() }) {
+                                    Text("Later")
+                                }
+                            }
+                        )
+                    }
 
                     Scaffold(
                         floatingActionButton = {
@@ -302,11 +300,11 @@ class MainActivity : ComponentActivity() {
                                                 if (isLargeScreen && themeViewModel.splitScreenPreference.value) {
                                                     if (currentDestination == "list") listRightPaneState = RightPaneState.Add
                                                     else {
-                                                        navController.navigate("list") { popUpTo("list") { saveState = true }; launchSingleTop = true; restoreState = true }
+                                                        navController.navigate(ReadingList) { popUpTo<ReadingList>() { saveState = true }; launchSingleTop = true; restoreState = true }
                                                         listRightPaneState = RightPaneState.Add
                                                     }
                                                 } else {
-                                                    navController.navigate("add")
+                                                    navController.navigate(Add)
                                                 }
                                             }
                                         )
@@ -317,11 +315,11 @@ class MainActivity : ComponentActivity() {
                                                 if (isLargeScreen && themeViewModel.splitScreenPreference.value) {
                                                     if (currentDestination == "notes") notesRightPaneState = RightPaneState.Add
                                                     else {
-                                                        navController.navigate("notes") { popUpTo("list") { saveState = true }; launchSingleTop = true; restoreState = true }
+                                                        navController.navigate(Notes) { popUpTo<ReadingList>() { saveState = true }; launchSingleTop = true; restoreState = true }
                                                         notesRightPaneState = RightPaneState.Add
                                                     }
                                                 } else {
-                                                    navController.navigate("add_note")
+                                                    navController.navigate(AddNote)
                                                 }
                                             }
                                         )
@@ -332,11 +330,11 @@ class MainActivity : ComponentActivity() {
                                                 if (isLargeScreen && themeViewModel.splitScreenPreference.value) {
                                                     if (currentDestination == "reminders") remindersRightPaneState = RightPaneState.Add
                                                     else {
-                                                        navController.navigate("reminders") { popUpTo("list") { saveState = true }; launchSingleTop = true; restoreState = true }
+                                                        navController.navigate(Reminders) { popUpTo<ReadingList>() { saveState = true }; launchSingleTop = true; restoreState = true }
                                                         remindersRightPaneState = RightPaneState.Add
                                                     }
                                                 } else {
-                                                    navController.navigate("add_reminder")
+                                                    navController.navigate(AddReminder)
                                                 }
                                             }
                                         )
@@ -352,8 +350,8 @@ class MainActivity : ComponentActivity() {
                                         label = { Text(stringResource(R.string.list_label)) },
                                         selected = currentDestination == "list",
                                         onClick = {
-                                            navController.navigate("list") {
-                                                popUpTo("list") { saveState = true }
+                                            navController.navigate(ReadingList) {
+                                                popUpTo<ReadingList>() { saveState = true }
                                                 launchSingleTop = true
                                                 restoreState = true
                                             }
@@ -364,8 +362,8 @@ class MainActivity : ComponentActivity() {
                                         label = { Text(stringResource(R.string.notes)) },
                                         selected = currentDestination == "notes",
                                         onClick = {
-                                            navController.navigate("notes") {
-                                                popUpTo("list") { saveState = true }
+                                            navController.navigate(Notes) {
+                                                popUpTo<ReadingList>() { saveState = true }
                                                 launchSingleTop = true
                                                 restoreState = true
                                             }
@@ -376,8 +374,8 @@ class MainActivity : ComponentActivity() {
                                         label = { Text(stringResource(R.string.reminders)) },
                                         selected = currentDestination == "reminders",
                                         onClick = {
-                                            navController.navigate("reminders") {
-                                                popUpTo("list") { saveState = true }
+                                            navController.navigate(Reminders) {
+                                                popUpTo<ReadingList>() { saveState = true }
                                                 launchSingleTop = true
                                                 restoreState = true
                                             }
@@ -389,7 +387,7 @@ class MainActivity : ComponentActivity() {
                     ) { innerPadding ->
                         NavHost(
                             navController = navController, 
-                            startDestination = "login", 
+                            startDestination = Login, 
                             modifier = Modifier
                                 .padding(innerPadding)
                                 .consumeWindowInsets(innerPadding),
@@ -434,7 +432,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         ) {
-                            composable("login") {
+                            composable<Login> {
                                 LoginScreen(
                                     uiState = loginUiState,
                                     onLogin = { email, pin -> loginViewModel.login(email, pin) },
@@ -443,12 +441,12 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToList = { 
                                         themeViewModel.reloadPreferences()
                                         
-                                        navController.navigate("notes") {
-                                            popUpTo("login") { inclusive = true }
+                                        navController.navigate(Notes) {
+                                            popUpTo<Login>() { inclusive = true }
                                         }
                                         if (intentAction.value == "com.shishocompanion.ADD_NOTE") {
                                             intentAction.value = null
-                                            navController.navigate("add_note")
+                                            navController.navigate(AddNote)
                                         }
                                         listViewModel.syncReadingList()
                                         notesViewModel.syncNotes()
@@ -456,7 +454,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
-                            composable("list") {
+                            composable<ReadingList> {
                                 val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
                                 val windowInfo = androidx.compose.ui.platform.LocalWindowInfo.current
                                 val density = androidx.compose.ui.platform.LocalDensity.current
@@ -475,7 +473,8 @@ class MainActivity : ComponentActivity() {
                                                     hasUnreadAnnouncements = hasUnreadAnnouncements,
                                                     onSyncClick = { listViewModel.syncReadingList() },
                                                     onItemClick = { id -> listRightPaneState = RightPaneState.View(id) },
-                                                    onSettingsClick = { navController.navigate("settings") }
+                                                    onSettingsClick = { navController.navigate(Settings) },
+                                                    onDeleteReadingListItem = { listViewModel.deleteItem(it) }
                                                 )
                                             }
                                         },
@@ -510,6 +509,9 @@ class MainActivity : ComponentActivity() {
                                                                 listRightPaneState = RightPaneState.Empty
                                                             },
                                                             onNavigateBack = { listRightPaneState = RightPaneState.Empty },
+                                                            onSearchBooks = { query, isIsbn, onResult ->
+                                                                listViewModel.searchGoogleBooks(query, isIsbn, onResult)
+                                                            },
                                                             isSplitScreen = true
                                                         )
                                                     }
@@ -536,12 +538,13 @@ class MainActivity : ComponentActivity() {
                                         uiState = listUiState,
                                         hasUnreadAnnouncements = hasUnreadAnnouncements,
                                         onSyncClick = { listViewModel.syncReadingList() },
-                                        onItemClick = { id -> navController.navigate("detail/$id") },
-                                        onSettingsClick = { navController.navigate("settings") }
+                                        onItemClick = { id -> navController.navigate(Detail(id)) },
+                                        onSettingsClick = { navController.navigate(Settings) },
+                                        onDeleteReadingListItem = { listViewModel.deleteItem(it) }
                                     )
                                 }
                             }
-                            composable("notes") {
+                            composable<Notes> {
                                 val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
                                 val windowInfo = androidx.compose.ui.platform.LocalWindowInfo.current
                                 val density = androidx.compose.ui.platform.LocalDensity.current
@@ -563,12 +566,14 @@ class MainActivity : ComponentActivity() {
                                                     selectedNoteIds = selectedNoteIds,
                                                     onSyncClick = { notesViewModel.syncNotes() },
                                                     onItemClick = { id -> notesRightPaneState = RightPaneState.View(id) },
-                                                    onSettingsClick = { navController.navigate("settings") },
-                                                    onArchiveClick = { navController.navigate("archived_notes") },
+                                                    onSettingsClick = { navController.navigate(Settings) },
+                                                    onArchiveClick = { navController.navigate(ArchivedNotes) },
                                                     onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
                                                     onClearSelection = { notesViewModel.clearNoteSelection() },
                                                     onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
                                                     onArchiveSelected = { notesViewModel.archiveSelectedNotes() },
+                                                    onDeleteNote = { notesViewModel.deleteNote(it) },
+                                                    onArchiveNote = { notesViewModel.archiveNote(it) },
                                                     dateFormatPreference = dateFormatPreference
                                                 )
                                             }
@@ -646,23 +651,28 @@ class MainActivity : ComponentActivity() {
                                         hasUnreadAnnouncements = hasUnreadAnnouncements,
                                         selectedNoteIds = selectedNoteIds,
                                         onSyncClick = { notesViewModel.syncNotes() },
-                                        onItemClick = { id -> navController.navigate("note_detail/$id") },
-                                        onSettingsClick = { navController.navigate("settings") },
-                                        onArchiveClick = { navController.navigate("archived_notes") },
+                                        onItemClick = { id -> navController.navigate(NoteDetail(id)) },
+                                        onSettingsClick = { navController.navigate(Settings) },
+                                        onArchiveClick = { navController.navigate(ArchivedNotes) },
                                         onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
                                         onClearSelection = { notesViewModel.clearNoteSelection() },
                                         onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
                                         onArchiveSelected = { notesViewModel.archiveSelectedNotes() },
+                                        onDeleteNote = { notesViewModel.deleteNote(it) },
+                                        onArchiveNote = { notesViewModel.archiveNote(it) },
                                         dateFormatPreference = dateFormatPreference
                                     )
                                 }
                             }
-                            composable("add") {
+                            composable<Add> {
                                 AddReadingListItemScreen(
                                     onSave = { req ->
                                         listViewModel.addItem(req)
                                     },
-                                    onNavigateBack = { navController.popBackStack() }
+                                    onNavigateBack = { navController.popBackStack() },
+                                    onSearchBooks = { query, isIsbn, onResult ->
+                                        listViewModel.searchGoogleBooks(query, isIsbn, onResult)
+                                    }
                                 )
                             }
                             composable("detail/{id}") { backStackEntry ->
@@ -672,7 +682,7 @@ class MainActivity : ComponentActivity() {
                                     if (item != null) {
                                         BookDetailScreen(
                                             item = item,
-                                            onEditClick = { navController.navigate("edit/$id") },
+                                            onEditClick = { navController.navigate(Edit(id)) },
                                             onDeleteClick = {
                                                 listViewModel.deleteItem(id)
                                                 navController.popBackStack()
@@ -698,7 +708,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            composable("add_note") {
+                            composable<AddNote> {
                                 val userId = sharedPrefs.getString("USER_ID", "") ?: ""
                                 AddNoteScreen(
                                     userId = userId,
@@ -713,7 +723,7 @@ class MainActivity : ComponentActivity() {
                                     if (item != null) {
                                         NoteDetailScreen(
                                             item = item,
-                                            onEditClick = { navController.navigate("edit_note/$id") },
+                                            onEditClick = { navController.navigate(EditNote(id)) },
                                             onDeleteClick = {
                                                 notesViewModel.deleteNote(id)
                                                 navController.popBackStack()
@@ -750,10 +760,13 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-                            composable("settings") {
-                                val settingsViewModel: SettingsViewModel = viewModel(factory = viewModelFactory)
+                            composable<Settings> {
+                                val settingsViewModel: SettingsViewModel = hiltViewModel()
                                 val discordLinkUiState by settingsViewModel.uiState.collectAsState()
                                 val linkedDiscordId by settingsViewModel.linkedDiscordId.collectAsState()
+                                val googleBooksApiKey by settingsViewModel.googleBooksApiKey.collectAsState()
+                                val swipeActionPreference by settingsViewModel.swipeActionPreference.collectAsState()
+                                val sendRemindersToDiscordPreference by themeViewModel.sendRemindersToDiscordPreference.collectAsState()
 
                                 LaunchedEffect(Unit) {
                                     announcementsViewModel.markAsRead()
@@ -769,6 +782,10 @@ class MainActivity : ComponentActivity() {
                                     onDateFormatPreferenceChanged = { themeViewModel.setDateFormatPreference(it) },
                                     languagePreference = languagePreference,
                                     onLanguagePreferenceChanged = { themeViewModel.setLanguagePreference(it) },
+                                    googleBooksApiKey = googleBooksApiKey,
+                                    onGoogleBooksApiKeyChanged = { settingsViewModel.updateGoogleBooksApiKey(it) },
+                                    swipeActionPreference = swipeActionPreference,
+                                    onSwipeActionPreferenceChanged = { settingsViewModel.updateSwipeActionPreference(it) },
                                     sendRemindersToDiscordPreference = sendRemindersToDiscordPreference,
                                     onSendRemindersToDiscordPreferenceChanged = { themeViewModel.setSendRemindersToDiscordPreference(it) },
                                     linkedDiscordId = linkedDiscordId,
@@ -782,7 +799,7 @@ class MainActivity : ComponentActivity() {
                                     onSplitScreenPreferenceChanged = { themeViewModel.setSplitScreenPreference(it) },
                                     onLogout = {
                                         loginViewModel.logout()
-                                        navController.navigate("login") {
+                                        navController.navigate(Login) {
                                             popUpTo(0) { inclusive = true }
                                         }
                                     },
@@ -792,7 +809,7 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
-                            composable("reminders") {
+                            composable<Reminders> {
                                 val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
                                 val windowInfo = androidx.compose.ui.platform.LocalWindowInfo.current
                                 val density = androidx.compose.ui.platform.LocalDensity.current
@@ -816,11 +833,13 @@ class MainActivity : ComponentActivity() {
                                                     dateFormatPreference = dateFormatPreference,
                                                     onSyncClick = { remindersViewModel.syncReminders() },
                                                     onItemClick = { id -> remindersRightPaneState = RightPaneState.View(id) },
-                                                    onSettingsClick = { navController.navigate("settings") },
-                                                    onArchiveClick = { navController.navigate("archived_reminders") },
+                                                    onSettingsClick = { navController.navigate(Settings) },
+                                                    onArchiveClick = { navController.navigate(ArchivedReminders) },
                                                     onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
                                                     onClearSelection = { remindersViewModel.clearReminderSelection() },
-                                                    onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
+                                                    onDeleteSelected = { remindersViewModel.deleteSelectedReminders() },
+                                                    onDeleteReminder = { remindersViewModel.deleteReminder(it) },
+                                                    onArchiveReminder = { remindersViewModel.archiveReminder(it) }
                                                 )
                                             }
                                         },
@@ -889,16 +908,18 @@ class MainActivity : ComponentActivity() {
                                         use24HourTime = use24HourTime,
                                         dateFormatPreference = dateFormatPreference,
                                         onSyncClick = { remindersViewModel.syncReminders() },
-                                        onItemClick = { id -> navController.navigate("reminder_detail/$id") },
-                                        onSettingsClick = { navController.navigate("settings") },
-                                        onArchiveClick = { navController.navigate("archived_reminders") },
+                                        onItemClick = { id -> navController.navigate(ReminderDetail(id)) },
+                                        onSettingsClick = { navController.navigate(Settings) },
+                                        onArchiveClick = { navController.navigate(ArchivedReminders) },
                                         onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
                                         onClearSelection = { remindersViewModel.clearReminderSelection() },
-                                        onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
+                                        onDeleteSelected = { remindersViewModel.deleteSelectedReminders() },
+                                        onDeleteReminder = { remindersViewModel.deleteReminder(it) },
+                                        onArchiveReminder = { remindersViewModel.archiveReminder(it) }
                                     )
                                 }
                             }
-                            composable("archived_reminders") {
+                            composable<ArchivedReminders> {
                                 val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
                                 val windowInfo = androidx.compose.ui.platform.LocalWindowInfo.current
                                 val density = androidx.compose.ui.platform.LocalDensity.current
@@ -979,14 +1000,14 @@ class MainActivity : ComponentActivity() {
                                         use24HourTime = use24HourTime,
                                         dateFormatPreference = dateFormatPreference,
                                         onNavigateBack = { navController.popBackStack() },
-                                        onItemClick = { id -> navController.navigate("reminder_detail/$id") },
+                                        onItemClick = { id -> navController.navigate(ReminderDetail(id)) },
                                         onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
                                         onClearSelection = { remindersViewModel.clearReminderSelection() },
                                         onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
                                     )
                                 }
                             }
-                            composable("archived_notes") {
+                            composable<ArchivedNotes> {
                                 val splitScreenEnabled = themeViewModel.splitScreenPreference.collectAsState().value
                                 val windowInfo = androidx.compose.ui.platform.LocalWindowInfo.current
                                 val density = androidx.compose.ui.platform.LocalDensity.current
@@ -1076,7 +1097,7 @@ class MainActivity : ComponentActivity() {
                                         uiState = notesUiState,
                                         selectedNoteIds = selectedNoteIds,
                                         onNavigateBack = { navController.popBackStack() },
-                                        onItemClick = { id -> navController.navigate("note_detail/$id") },
+                                        onItemClick = { id -> navController.navigate(NoteDetail(id)) },
                                         onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
                                         onClearSelection = { notesViewModel.clearNoteSelection() },
                                         onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
@@ -1085,7 +1106,7 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
-                            composable("add_reminder") {
+                            composable<AddReminder> {
                                 val userId = sharedPrefs.getString("USER_ID", "") ?: ""
                                 AddReminderScreen(
                                     userId = userId,
@@ -1103,7 +1124,7 @@ class MainActivity : ComponentActivity() {
                                             item = item,
                                             use24HourTime = use24HourTime,
                                             dateFormatPreference = dateFormatPreference,
-                                            onEditClick = { navController.navigate("edit_reminder/$id") },
+                                            onEditClick = { navController.navigate(EditReminder(id)) },
                                             onDeleteClick = {
                                                 remindersViewModel.deleteReminder(id)
                                                 navController.popBackStack()

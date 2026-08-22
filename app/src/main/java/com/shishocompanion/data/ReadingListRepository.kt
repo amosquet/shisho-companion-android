@@ -9,6 +9,9 @@ import io.ktor.http.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID
+import io.ktor.client.statement.HttpResponse
+import com.shishocompanion.data.GoogleBooksResponse
+import com.shishocompanion.data.VolumeInfo
 
 import com.shishocompanion.BuildConfig
 
@@ -195,6 +198,7 @@ class ReadingListRepository(
 
     suspend fun sync() {
         if (authToken.isNullOrEmpty()) return
+        if (TokenUtils.isTokenExpired(authToken)) return
         try {
             // 1. Upload any pending local items
             val pendingItems = dao.getPendingSyncItems()
@@ -401,6 +405,21 @@ class ReadingListRepository(
         } catch (e: Exception) {
             e.printStackTrace()
             Result.failure(e)
+        }
+    }
+
+    suspend fun searchGoogleBooks(query: String, isIsbn: Boolean, apiKey: String): VolumeInfo? {
+        return try {
+            val q = if (isIsbn) "isbn:$query" else "intitle:$query"
+            val response: GoogleBooksResponse = client.get("https://www.googleapis.com/books/v1/volumes") {
+                parameter("q", q)
+                parameter("key", apiKey)
+            }.body()
+
+            response.items?.firstOrNull()?.volumeInfo
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 }

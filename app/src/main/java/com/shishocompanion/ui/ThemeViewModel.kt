@@ -10,8 +10,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class ThemeViewModel(
+@HiltViewModel
+class ThemeViewModel @Inject constructor(
     private val repository: ReadingListRepository,
     private val sharedPrefs: SharedPreferences
 ) : ViewModel() {

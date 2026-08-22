@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shishocompanion.data.NoteItem
+import com.shishocompanion.ui.components.CustomPullToRefreshBox
+import com.shishocompanion.ui.components.CustomSwipeToDismissBox
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,7 +40,10 @@ fun NotesListScreen(
     onClearSelection: () -> Unit,
     onDeleteSelected: () -> Unit,
     onArchiveSelected: () -> Unit,
-    dateFormatPreference: String = "SYSTEM"
+    onDeleteNote: (String) -> Unit,
+    onArchiveNote: (String) -> Unit,
+    dateFormatPreference: String = "SYSTEM",
+    swipeActionPreference: String = "DELETE"
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val inSelectionMode = selectedNoteIds.isNotEmpty()
@@ -92,44 +97,56 @@ fun NotesListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (uiState) {
-                is NotesUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is NotesUiState.Error -> {
-                    Text(
-                        text = uiState.message,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                is NotesUiState.Success -> {
-                    val filteredNotes = uiState.items.filter { !it.archived }
-                    if (filteredNotes.isEmpty()) {
+            CustomPullToRefreshBox(
+                isRefreshing = uiState is NotesUiState.Loading,
+                onRefresh = onSyncClick,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (uiState) {
+                    is NotesUiState.Loading -> {
+                        // handled by CustomPullToRefreshBox
+                    }
+                    is NotesUiState.Error -> {
                         Text(
-                            text = "You have no notes.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.secondary,
+                            text = uiState.message,
+                            color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.align(Alignment.Center)
                         )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(filteredNotes, key = { it.id }) { item ->
-                                val isSelected = selectedNoteIds.contains(item.id)
-                                NoteItemCard(
-                                    item = item,
-                                    isSelected = isSelected,
-                                    dateFormatPreference = dateFormatPreference,
-                                    onClick = { 
-                                        if (inSelectionMode) onToggleSelection(item.id)
-                                        else onItemClick(item.id)
-                                    },
-                                    onLongClick = { onToggleSelection(item.id) }
-                                )
+                    }
+                    is NotesUiState.Success -> {
+                        val filteredNotes = uiState.items.filter { !it.archived }
+                        if (filteredNotes.isEmpty()) {
+                            Text(
+                                text = "You have no notes.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(filteredNotes, key = { it.id }) { item ->
+                                    val isSelected = selectedNoteIds.contains(item.id)
+                                    CustomSwipeToDismissBox(
+                                        swipeActionPreference = swipeActionPreference,
+                                        onDismiss = { onDeleteNote(item.id) },
+                                        onArchive = { onArchiveNote(item.id) }
+                                    ) {
+                                        NoteItemCard(
+                                            item = item,
+                                            isSelected = isSelected,
+                                            dateFormatPreference = dateFormatPreference,
+                                            onClick = { 
+                                                if (inSelectionMode) onToggleSelection(item.id)
+                                                else onItemClick(item.id)
+                                            },
+                                            onLongClick = { onToggleSelection(item.id) }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

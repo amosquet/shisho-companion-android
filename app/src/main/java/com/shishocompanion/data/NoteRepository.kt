@@ -70,6 +70,7 @@ class NoteRepository(
 
     suspend fun sync() {
         if (authToken.isNullOrEmpty()) return
+        if (TokenUtils.isTokenExpired(authToken)) return
         try {
             // 1. Upload any pending local items
             val pendingItems = dao.getPendingSyncNotes()

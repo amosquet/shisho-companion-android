@@ -8,8 +8,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class SettingsViewModel(
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
     private val repository: ReadingListRepository,
     private val sharedPrefs: SharedPreferences
 ) : ViewModel() {
@@ -19,6 +22,12 @@ class SettingsViewModel(
 
     private val _linkedDiscordId = MutableStateFlow<String>(sharedPrefs.getString("DISCORD_ID", "") ?: "")
     val linkedDiscordId: StateFlow<String> = _linkedDiscordId.asStateFlow()
+
+    private val _googleBooksApiKey = MutableStateFlow<String>(sharedPrefs.getString("GOOGLE_BOOKS_API_KEY", "") ?: "")
+    val googleBooksApiKey: StateFlow<String> = _googleBooksApiKey.asStateFlow()
+
+    private val _swipeActionPreference = MutableStateFlow<String>(sharedPrefs.getString("SWIPE_ACTION", "DELETE") ?: "DELETE")
+    val swipeActionPreference: StateFlow<String> = _swipeActionPreference.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -77,6 +86,16 @@ class SettingsViewModel(
 
     fun resetState() {
         _uiState.value = DiscordLinkUiState.Idle
+    }
+
+    fun updateGoogleBooksApiKey(key: String) {
+        _googleBooksApiKey.value = key
+        sharedPrefs.edit().putString("GOOGLE_BOOKS_API_KEY", key).apply()
+    }
+
+    fun updateSwipeActionPreference(action: String) {
+        _swipeActionPreference.value = action
+        sharedPrefs.edit().putString("SWIPE_ACTION", action).apply()
     }
 }
 

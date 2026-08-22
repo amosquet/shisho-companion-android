@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.shishocompanion.data.ReminderItem
+import com.shishocompanion.ui.components.CustomPullToRefreshBox
+import com.shishocompanion.ui.components.CustomSwipeToDismissBox
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -46,7 +48,10 @@ fun RemindersListScreen(
     onArchiveClick: () -> Unit,
     onToggleSelection: (String) -> Unit,
     onClearSelection: () -> Unit,
-    onDeleteSelected: () -> Unit
+    onDeleteSelected: () -> Unit,
+    onDeleteReminder: (String) -> Unit,
+    onArchiveReminder: (String) -> Unit,
+    swipeActionPreference: String = "DELETE"
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     val inSelectionMode = selectedReminderIds.isNotEmpty()
@@ -110,34 +115,44 @@ fun RemindersListScreen(
         ) {
             val filteredReminders = uiState.reminders.filter { !it.isSent }
 
-            if (uiState.isLoading) {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            } else if (filteredReminders.isEmpty()) {
-                Text(
-                    text = "No pending reminders.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    items(filteredReminders) { reminder ->
-                        val isSelected = selectedReminderIds.contains(reminder.id)
-                        ReminderCard(
-                            reminder = reminder, 
-                            use24HourTime = use24HourTime, 
-                            dateFormatPreference = dateFormatPreference,
-                            isSelected = isSelected,
-                            onClick = { 
-                                if (inSelectionMode) onToggleSelection(reminder.id)
-                                else onItemClick(reminder.id)
-                            },
-                            onLongClick = { onToggleSelection(reminder.id) }
-                        )
+            CustomPullToRefreshBox(
+                isRefreshing = uiState.isLoading,
+                onRefresh = onSyncClick,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (filteredReminders.isEmpty() && !uiState.isLoading) {
+                    Text(
+                        text = "No pending reminders.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(filteredReminders) { reminder ->
+                            val isSelected = selectedReminderIds.contains(reminder.id)
+                            CustomSwipeToDismissBox(
+                                swipeActionPreference = swipeActionPreference,
+                                onDismiss = { onDeleteReminder(reminder.id) },
+                                onArchive = { onArchiveReminder(reminder.id) }
+                            ) {
+                                ReminderCard(
+                                    reminder = reminder, 
+                                    use24HourTime = use24HourTime, 
+                                    dateFormatPreference = dateFormatPreference,
+                                    isSelected = isSelected,
+                                    onClick = { 
+                                        if (inSelectionMode) onToggleSelection(reminder.id)
+                                        else onItemClick(reminder.id)
+                                    },
+                                    onLongClick = { onToggleSelection(reminder.id) }
+                                )
+                            }
+                        }
                     }
                 }
             }

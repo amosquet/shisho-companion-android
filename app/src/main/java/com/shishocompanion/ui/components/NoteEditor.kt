@@ -15,6 +15,11 @@ import androidx.compose.ui.unit.dp
 
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 
 @Composable
 fun NoteEditor(
@@ -74,7 +79,27 @@ fun NoteEditor(
                             }
                             onTextChange(newLines.joinToString("\n"))
                         },
-                        modifier = Modifier.fillMaxWidth().padding(start = 8.dp).focusRequester(fr),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 8.dp)
+                            .focusRequester(fr)
+                            .onKeyEvent { keyEvent ->
+                                if (keyEvent.key == Key.Backspace && keyEvent.type == KeyEventType.KeyUp && content.isEmpty()) {
+                                    if (index > 0) {
+                                        val newLines = lines.toMutableList()
+                                        newLines.removeAt(index)
+                                        lineToFocus = index - 1
+                                        onTextChange(newLines.joinToString("\n"))
+                                        return@onKeyEvent true
+                                    } else {
+                                        val newLines = lines.toMutableList()
+                                        newLines[index] = ""
+                                        onTextChange(newLines.joinToString("\n"))
+                                        return@onKeyEvent true
+                                    }
+                                }
+                                false
+                            },
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = MaterialTheme.colorScheme.onBackground
                         ),
@@ -97,7 +122,22 @@ fun NoteEditor(
                         }
                         onTextChange(newLines.joinToString("\n"))
                     },
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).focusRequester(fr),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .focusRequester(fr)
+                        .onKeyEvent { keyEvent ->
+                            if (keyEvent.key == Key.Backspace && keyEvent.type == KeyEventType.KeyUp && line.isEmpty()) {
+                                if (index > 0) {
+                                    val newLines = lines.toMutableList()
+                                    newLines.removeAt(index)
+                                    lineToFocus = index - 1
+                                    onTextChange(newLines.joinToString("\n"))
+                                    return@onKeyEvent true
+                                }
+                            }
+                            false
+                        },
                     textStyle = MaterialTheme.typography.bodyLarge.copy(
                         color = MaterialTheme.colorScheme.onBackground
                     ),

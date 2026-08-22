@@ -14,8 +14,11 @@ import kotlinx.coroutines.launch
 
 import android.content.SharedPreferences
 import androidx.core.content.edit
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class LoginViewModel(
+@HiltViewModel
+class LoginViewModel @Inject constructor(
     private val repository: ReadingListRepository,
     private val noteRepository: NoteRepository,
     private val reminderRepository: ReminderRepository,
@@ -25,6 +28,9 @@ class LoginViewModel(
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+
+    private val _showSessionExpiredDialog = MutableStateFlow(false)
+    val showSessionExpiredDialog: StateFlow<Boolean> = _showSessionExpiredDialog.asStateFlow()
 
     init {
         val savedToken = sharedPrefs.getString("TOKEN", null)
@@ -37,9 +43,17 @@ class LoginViewModel(
             reminderRepository.authToken = savedToken
             reminderRepository.userId = savedUserId
             _uiState.value = LoginUiState.Success
+            
+            if (com.shishocompanion.data.TokenUtils.isTokenExpired(savedToken)) {
+                _showSessionExpiredDialog.value = true
+            }
         } else if (sharedPrefs.getBoolean("IS_GUEST", false)) {
             _uiState.value = LoginUiState.Guest
         }
+    }
+
+    fun dismissSessionExpiredDialog() {
+        _showSessionExpiredDialog.value = false
     }
 
     fun login(email: String, pin: String) {

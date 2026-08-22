@@ -13,8 +13,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.shishocompanion.BuildConfig
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class AnnouncementsViewModel(
+@HiltViewModel
+class AnnouncementsViewModel @Inject constructor(
     private val client: HttpClient,
     private val sharedPrefs: SharedPreferences
 ) : ViewModel() {

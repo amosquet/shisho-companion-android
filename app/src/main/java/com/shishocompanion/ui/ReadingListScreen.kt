@@ -20,6 +20,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.shishocompanion.data.ReadingListItem
+import com.shishocompanion.ui.components.CustomPullToRefreshBox
+import com.shishocompanion.ui.components.CustomSwipeToDismissBox
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,7 +30,9 @@ fun ReadingListScreen(
     hasUnreadAnnouncements: Boolean,
     onSyncClick: () -> Unit,
     onItemClick: (String) -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    onDeleteReadingListItem: (String) -> Unit,
+    swipeActionPreference: String = "DELETE"
 ) {
     Scaffold(
         topBar = {
@@ -61,33 +65,45 @@ fun ReadingListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (uiState) {
-                is ReadingListUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                }
-                is ReadingListUiState.Error -> {
-                    Text(
-                        text = uiState.message,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-                is ReadingListUiState.Success -> {
-                    if (uiState.items.isEmpty()) {
+            CustomPullToRefreshBox(
+                isRefreshing = uiState is ReadingListUiState.Loading,
+                onRefresh = onSyncClick,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                when (uiState) {
+                    is ReadingListUiState.Loading -> {
+                        // handled by CustomPullToRefreshBox
+                    }
+                    is ReadingListUiState.Error -> {
                         Text(
-                            text = "Your reading list is empty.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.secondary,
+                            text = uiState.message,
+                            color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.align(Alignment.Center)
                         )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            items(uiState.items, key = { it.id }) { item ->
-                                ReadingListItemCard(item = item, onClick = { onItemClick(item.id) })
+                    }
+                    is ReadingListUiState.Success -> {
+                        if (uiState.items.isEmpty()) {
+                            Text(
+                                text = "Your reading list is empty.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(uiState.items, key = { it.id }) { item ->
+                                    CustomSwipeToDismissBox(
+                                        swipeActionPreference = swipeActionPreference,
+                                        onDismiss = { onDeleteReadingListItem(item.id) },
+                                        onArchive = { onDeleteReadingListItem(item.id) }
+                                    ) {
+                                        ReadingListItemCard(item = item, onClick = { onItemClick(item.id) })
+                                    }
+                                }
                             }
                         }
                     }

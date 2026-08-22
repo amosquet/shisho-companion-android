@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 val envProps = Properties()
@@ -12,7 +13,7 @@ val envFile = project.rootProject.file(".env")
 if (envFile.exists()) {
     envProps.load(envFile.inputStream())
 }
-val pocketbaseUrl = envProps.getProperty("POCKETBASE_URL") ?: "http://10.0.2.2:8090"
+val pocketbaseUrl = envProps.getProperty("POCKETBASE_URL") ?: "https://pocketbase.amcloud.dev"
 val shishoApiUrl = envProps.getProperty("SHISHO_API_URL") ?: "https://shisho.amcloud.dev"
 
 
@@ -82,6 +83,9 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive)
     implementation(libs.androidx.compose.material3.adaptive.layout)
     implementation(libs.androidx.compose.material3.adaptive.navigation)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.sqlcipher)

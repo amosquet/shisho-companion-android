@@ -14,8 +14,11 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 
-class NotesViewModel(
+@HiltViewModel
+class NotesViewModel @Inject constructor(
     application: Application,
     private val repository: NoteRepository
 ) : AndroidViewModel(application) {

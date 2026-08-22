@@ -9,6 +9,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import net.zetetic.database.sqlcipher.SQLiteDatabase
 import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import java.security.SecureRandom
 import android.util.Base64
@@ -62,15 +63,28 @@ abstract class AppDatabase : RoomDatabase() {
                 if (dbFile.exists()) {
                     try {
                         val header = ByteArray(16)
-                        dbFile.inputStream().use { it.read(header) }
-                        if (String(header).startsWith("SQLite format 3")) {
-                            dbFile.delete()
-                            context.getDatabasePath("reading_list_database-journal").delete()
-                            context.getDatabasePath("reading_list_database-wal").delete()
-                            context.getDatabasePath("reading_list_database-shm").delete()
+                        val bytesRead = dbFile.inputStream().use { it.read(header) }
+                        if (bytesRead > 0 && String(header).startsWith("SQLite format 3")) {
+                            context.deleteDatabase("reading_list_database")
+                        } else {
+                            System.loadLibrary("sqlcipher")
+                            try {
+                                val db = SQLiteDatabase.openDatabase(
+                                    dbFile.absolutePath,
+                                    passphrase,
+                                    null,
+                                    SQLiteDatabase.OPEN_READONLY,
+                                    null
+                                )
+                                db.close()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                context.deleteDatabase("reading_list_database")
+                            }
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
+                        context.deleteDatabase("reading_list_database")
                     }
                 }
                 

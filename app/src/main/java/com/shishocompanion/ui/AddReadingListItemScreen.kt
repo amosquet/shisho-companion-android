@@ -19,12 +19,15 @@ import androidx.compose.ui.Alignment
 import coil.compose.AsyncImage
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.shishocompanion.data.VolumeInfo
+import androidx.compose.material.icons.filled.Search
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddReadingListItemScreen(
     onSave: (CreateReadingListItemRequest) -> Unit,
     onNavigateBack: () -> Unit,
+    onSearchBooks: (query: String, isIsbn: Boolean, onResult: (VolumeInfo?) -> Unit) -> Unit,
     isSplitScreen: Boolean = false
 ) {
     var title by remember { mutableStateOf("") }
@@ -75,7 +78,23 @@ fun AddReadingListItemScreen(
                 onValueChange = { title = it },
                 label = { Text(stringResource(R.string.title)) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                trailingIcon = {
+                    IconButton(onClick = {
+                        if (title.isNotBlank()) {
+                            onSearchBooks(title, false) { volumeInfo ->
+                                if (volumeInfo != null) {
+                                    volumeInfo.title?.let { title = it }
+                                    volumeInfo.authors?.firstOrNull()?.let { author = it }
+                                    volumeInfo.description?.let { description = it }
+                                    volumeInfo.industryIdentifiers?.find { it.type == "ISBN_13" || it.type == "ISBN_10" }?.let { isbn = it.identifier ?: "" }
+                                }
+                            }
+                        }
+                    }) {
+                        Icon(Icons.Filled.Search, contentDescription = "Search by Title")
+                    }
+                }
             )
             OutlinedTextField(
                 value = author,
@@ -89,7 +108,22 @@ fun AddReadingListItemScreen(
                 onValueChange = { isbn = it },
                 label = { Text(stringResource(R.string.isbn)) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                trailingIcon = {
+                    IconButton(onClick = {
+                        if (isbn.isNotBlank()) {
+                            onSearchBooks(isbn, true) { volumeInfo ->
+                                if (volumeInfo != null) {
+                                    volumeInfo.title?.let { title = it }
+                                    volumeInfo.authors?.firstOrNull()?.let { author = it }
+                                    volumeInfo.description?.let { description = it }
+                                }
+                            }
+                        }
+                    }) {
+                        Icon(Icons.Filled.Search, contentDescription = "Search by ISBN")
+                    }
+                }
             )
             var expanded by remember { mutableStateOf(false) }
             val statusOptions = listOf("planned", "reading", "read", "dropped")

@@ -10,6 +10,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import dagger.hilt.android.lifecycle.HiltViewModel
 
 data class RemindersUiState(
     val reminders: List<ReminderItem> = emptyList(),
@@ -17,7 +19,8 @@ data class RemindersUiState(
     val errorMessage: String? = null
 )
 
-class RemindersViewModel(
+@HiltViewModel
+class RemindersViewModel @Inject constructor(
     application: Application,
     private val repository: ReminderRepository
 ) : AndroidViewModel(application) {
@@ -130,6 +133,18 @@ class RemindersViewModel(
             } finally {
                 _uiState.value = _uiState.value.copy(isLoading = false)
             }
+        }
+    }
+
+    fun archiveReminder(id: String) {
+        val reminder = getReminderById(id)
+        if (reminder != null) {
+            updateReminder(id, CreateReminderRequest(
+                userId = reminder.userId,
+                reminderText = reminder.reminderText,
+                remindAt = reminder.remindAt,
+                isSent = !reminder.isSent
+            ))
         }
     }
 

@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import com.shishocompanion.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -31,7 +31,7 @@ fun AddReminderScreen(
                 navigationIcon = {
                     if (!isSplitScreen) {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 }

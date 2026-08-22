@@ -146,9 +146,19 @@ fun NoteDetailScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = content,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onBackground
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                textDecoration = if (isChecked) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.weight(1f)
                         )
+                        IconButton(onClick = {
+                            val newLines = lines.toMutableList()
+                            newLines.removeAt(index)
+                            onTextUpdate(newLines.joinToString("\n"))
+                        }) {
+                            Icon(Icons.Filled.Close, contentDescription = "Delete item", tint = MaterialTheme.colorScheme.error)
+                        }
                     }
                 } else {
                     Text(

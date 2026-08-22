@@ -10,10 +10,9 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,17 +26,9 @@ fun DatePickerField(
         if (value.isBlank()) null
         else {
             try {
-                val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US)
-                parser.timeZone = TimeZone.getTimeZone("UTC")
-                parser.parse(value)?.time
+                Instant.parse(value.replace(" ", "T")).toEpochMilli()
             } catch (e: Exception) {
-                try {
-                    val parser = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                    parser.timeZone = TimeZone.getTimeZone("UTC")
-                    parser.parse(value)?.time
-                } catch (e2: Exception) {
-                    null
-                }
+                null
             }
         }
     }
@@ -75,9 +66,8 @@ fun DatePickerField(
             confirmButton = {
                 TextButton(onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val formatter = SimpleDateFormat("yyyy-MM-dd 00:00:00.000'Z'", Locale.US)
-                        formatter.timeZone = TimeZone.getTimeZone("UTC")
-                        onValueChange(formatter.format(Date(millis)))
+                        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd '00:00:00.000Z'")
+                        onValueChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).format(formatter))
                     }
                     showDialog = false
                 }) {

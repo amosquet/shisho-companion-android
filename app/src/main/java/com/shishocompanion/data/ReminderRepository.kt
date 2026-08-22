@@ -38,6 +38,7 @@ class ReminderRepository(
 
     suspend fun sync() {
         if (authToken.isNullOrEmpty()) return
+        if (TokenUtils.isTokenExpired(authToken)) return
         try {
             val pendingItems = dao.getPendingSyncReminders()
             for (pending in pendingItems) {

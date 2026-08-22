@@ -36,6 +36,10 @@ fun SettingsScreen(
     onDateFormatPreferenceChanged: (String) -> Unit,
     languagePreference: String,
     onLanguagePreferenceChanged: (String) -> Unit,
+    googleBooksApiKey: String,
+    onGoogleBooksApiKeyChanged: (String) -> Unit,
+    swipeActionPreference: String,
+    onSwipeActionPreferenceChanged: (String) -> Unit,
     sendRemindersToDiscordPreference: Boolean,
     onSendRemindersToDiscordPreferenceChanged: (Boolean) -> Unit,
     linkedDiscordId: String,
@@ -359,6 +363,82 @@ fun SettingsScreen(
                             onCheckedChange = { onSplitScreenPreferenceChanged(it) }
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Swipe to Dismiss Action",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        var swipeActionDropdownExpanded by remember { mutableStateOf(false) }
+                        Box {
+                            TextButton(onClick = { swipeActionDropdownExpanded = true }) {
+                                Text(
+                                    text = when (swipeActionPreference) {
+                                        "ARCHIVE" -> "Archive"
+                                        "DELETE" -> "Delete"
+                                        else -> "Delete"
+                                    }
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = swipeActionDropdownExpanded,
+                                onDismissRequest = { swipeActionDropdownExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Delete") },
+                                    onClick = {
+                                        onSwipeActionPreferenceChanged("DELETE")
+                                        swipeActionDropdownExpanded = false
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Archive") },
+                                    onClick = {
+                                        onSwipeActionPreferenceChanged("ARCHIVE")
+                                        swipeActionDropdownExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Integrations",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "Google Books API Key",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = googleBooksApiKey,
+                        onValueChange = onGoogleBooksApiKeyChanged,
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        placeholder = { Text("Enter your API key") }
+                    )
                 }
             }
 

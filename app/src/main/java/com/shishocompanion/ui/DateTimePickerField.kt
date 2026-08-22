@@ -10,10 +10,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-import java.util.TimeZone
+import java.time.Instant
+import java.time.ZoneId
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,44 +29,28 @@ fun DateTimePickerField(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
 
-    val parsedCalendar = remember(value) {
+    val parsedZDT = remember(value) {
         if (value.isBlank()) null
         else {
             try {
-                val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US)
-                parser.timeZone = TimeZone.getTimeZone("UTC")
-                val date = parser.parse(value)
-                if (date != null) {
-                    val cal = Calendar.getInstance()
-                    cal.time = date
-                    cal
-                } else null
+                Instant.parse(value.replace(" ", "T")).atZone(ZoneId.systemDefault())
             } catch (e: Exception) {
                 null
             }
         }
     }
 
-    val effectiveCalendar = parsedCalendar ?: Calendar.getInstance()
+    val effectiveZDT = parsedZDT ?: ZonedDateTime.now(ZoneId.systemDefault())
 
-    val initialDateMillis = remember(effectiveCalendar) {
-        val localCal = Calendar.getInstance()
-        localCal.timeInMillis = effectiveCalendar.timeInMillis
-        val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-        utcCal.set(Calendar.YEAR, localCal.get(Calendar.YEAR))
-        utcCal.set(Calendar.MONTH, localCal.get(Calendar.MONTH))
-        utcCal.set(Calendar.DAY_OF_MONTH, localCal.get(Calendar.DAY_OF_MONTH))
-        utcCal.set(Calendar.HOUR_OF_DAY, 0)
-        utcCal.set(Calendar.MINUTE, 0)
-        utcCal.set(Calendar.SECOND, 0)
-        utcCal.set(Calendar.MILLISECOND, 0)
-        utcCal.timeInMillis
+    val initialDateMillis = remember(effectiveZDT) {
+        val utcDate = effectiveZDT.toLocalDate().atStartOfDay(ZoneOffset.UTC)
+        utcDate.toInstant().toEpochMilli()
     }
 
     val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialDateMillis)
     val timePickerState = rememberTimePickerState(
-        initialHour = effectiveCalendar.get(Calendar.HOUR_OF_DAY),
-        initialMinute = effectiveCalendar.get(Calendar.MINUTE),
+        initialHour = effectiveZDT.hour,
+        initialMinute = effectiveZDT.minute,
         is24Hour = use24HourTime
     )
 
@@ -76,14 +61,14 @@ fun DateTimePickerField(
             "YYYY_MM_DD" -> "yyyy-MM-dd"
             else -> "MMM dd, yyyy"
         }
-        SimpleDateFormat(pattern, Locale.getDefault()) 
+        DateTimeFormatter.ofPattern(pattern)
     }
     val timeFormatter = remember(use24HourTime) { 
-        SimpleDateFormat(if (use24HourTime) "HH:mm" else "h:mm a", Locale.getDefault()) 
+        DateTimeFormatter.ofPattern(if (use24HourTime) "HH:mm" else "h:mm a")
     }
 
-    val displayDate = dateFormatter.format(effectiveCalendar.time)
-    val displayTime = if (parsedCalendar != null) timeFormatter.format(effectiveCalendar.time) else "Select Time"
+    val displayDate = effectiveZDT.format(dateFormatter)
+    val displayTime = if (parsedZDT != null) effectiveZDT.format(timeFormatter) else "Select Time"
 
     Column(modifier = modifier) {
         Text(
@@ -136,18 +121,14 @@ fun DateTimePickerField(
                 TextButton(onClick = {
                     showDatePicker = false
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val utcCalForDate = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-                        utcCalForDate.timeInMillis = millis
+                        val selectedLocalDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
+                        
+                        val newZDT = effectiveZDT.withYear(selectedLocalDate.year)
+                            .withMonth(selectedLocalDate.monthValue)
+                            .withDayOfMonth(selectedLocalDate.dayOfMonth)
 
-                        val newCal = Calendar.getInstance()
-                        newCal.timeInMillis = effectiveCalendar.timeInMillis
-                        newCal.set(Calendar.YEAR, utcCalForDate.get(Calendar.YEAR))
-                        newCal.set(Calendar.MONTH, utcCalForDate.get(Calendar.MONTH))
-                        newCal.set(Calendar.DAY_OF_MONTH, utcCalForDate.get(Calendar.DAY_OF_MONTH))
-
-                        val pbFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US)
-                        pbFormatter.timeZone = TimeZone.getTimeZone("UTC")
-                        onValueChange(pbFormatter.format(newCal.time))
+                        val pbFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)
+                        onValueChange(pbFormatter.format(newZDT))
                     }
                 }) {
                     Text(stringResource(R.string.ok))
@@ -169,16 +150,13 @@ fun DateTimePickerField(
             confirmButton = {
                 TextButton(onClick = {
                     showTimePicker = false
-                    val newCal = Calendar.getInstance()
-                    newCal.timeInMillis = effectiveCalendar.timeInMillis
-                    newCal.set(Calendar.HOUR_OF_DAY, timePickerState.hour)
-                    newCal.set(Calendar.MINUTE, timePickerState.minute)
-                    newCal.set(Calendar.SECOND, 0)
-                    newCal.set(Calendar.MILLISECOND, 0)
+                    val newZDT = effectiveZDT.withHour(timePickerState.hour)
+                        .withMinute(timePickerState.minute)
+                        .withSecond(0)
+                        .withNano(0)
 
-                    val pbFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS'Z'", Locale.US)
-                    pbFormatter.timeZone = TimeZone.getTimeZone("UTC")
-                    onValueChange(pbFormatter.format(newCal.time))
+                    val pbFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS'Z'").withZone(ZoneOffset.UTC)
+                    onValueChange(pbFormatter.format(newZDT))
                 }) {
                     Text(stringResource(R.string.ok))
                 }
