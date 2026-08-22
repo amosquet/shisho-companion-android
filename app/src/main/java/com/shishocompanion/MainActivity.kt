@@ -681,37 +681,35 @@ class MainActivity : ComponentActivity() {
                                     }
                                 )
                             }
-                            composable("detail/{id}") { backStackEntry ->
-                                val id = backStackEntry.arguments?.getString("id")
-                                if (id != null) {
-                                    val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == id } ?: listViewModel.getItemById(id)
-                                    if (item != null) {
-                                        BookDetailScreen(
-                                            item = item,
-                                            onEditClick = { navController.navigate(Edit(id)) },
-                                            onDeleteClick = {
-                                                listViewModel.deleteItem(id)
-                                                navController.popBackStack()
-                                            },
-                                            onNavigateBack = { navController.popBackStack() },
-                                            dateFormatPreference = dateFormatPreference
-                                        )
-                                    }
+                            composable<Detail> { backStackEntry ->
+                                val route = backStackEntry.toRoute<Detail>()
+                                val id = route.id
+                                val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == id } ?: listViewModel.getItemById(id)
+                                if (item != null) {
+                                    BookDetailScreen(
+                                        item = item,
+                                        onEditClick = { navController.navigate(Edit(id)) },
+                                        onDeleteClick = {
+                                            listViewModel.deleteItem(id)
+                                            navController.popBackStack()
+                                        },
+                                        onNavigateBack = { navController.popBackStack() },
+                                        dateFormatPreference = dateFormatPreference
+                                    )
                                 }
                             }
-                            composable("edit/{id}") { backStackEntry ->
-                                val id = backStackEntry.arguments?.getString("id")
-                                if (id != null) {
-                                    val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == id } ?: listViewModel.getItemById(id)
-                                    if (item != null) {
-                                        EditReadingListItemScreen(
-                                            item = item,
-                                            onSave = { req ->
-                                                listViewModel.updateItem(id, req)
-                                            },
-                                            onNavigateBack = { navController.popBackStack() }
-                                        )
-                                    }
+                            composable<Edit> { backStackEntry ->
+                                val route = backStackEntry.toRoute<Edit>()
+                                val id = route.id
+                                val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == id } ?: listViewModel.getItemById(id)
+                                if (item != null) {
+                                    EditReadingListItemScreen(
+                                        item = item,
+                                        onSave = { req ->
+                                            listViewModel.updateItem(id, req)
+                                        },
+                                        onNavigateBack = { navController.popBackStack() }
+                                    )
                                 }
                             }
                             composable<AddNote> {
@@ -722,48 +720,46 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }
-                            composable("note_detail/{id}") { backStackEntry ->
-                                val id = backStackEntry.arguments?.getString("id")
-                                if (id != null) {
-                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == id } ?: notesViewModel.getNoteById(id)
-                                    if (item != null) {
-                                        NoteDetailScreen(
-                                            item = item,
-                                            onEditClick = { navController.navigate(EditNote(id)) },
-                                            onDeleteClick = {
-                                                notesViewModel.deleteNote(id)
-                                                navController.popBackStack()
-                                            },
-                                            onArchiveClick = {
-                                                notesViewModel.archiveNote(id)
-                                                navController.popBackStack()
-                                            },
-                                            onTextUpdate = { newText ->
-                                                val req = com.shishocompanion.data.CreateNoteRequest(
-                                                    userId = item.userId,
-                                                    title = item.title,
-                                                    text = newText,
-                                                    attachment = item.attachment,
-                                                    archived = item.archived
-                                                )
-                                                notesViewModel.updateNote(id, req)
-                                            },
-                                            onNavigateBack = { navController.popBackStack() }
-                                        )
-                                    }
+                            composable<NoteDetail> { backStackEntry ->
+                                val route = backStackEntry.toRoute<NoteDetail>()
+                                val id = route.id
+                                val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == id } ?: notesViewModel.getNoteById(id)
+                                if (item != null) {
+                                    NoteDetailScreen(
+                                        item = item,
+                                        onEditClick = { navController.navigate(EditNote(id)) },
+                                        onDeleteClick = {
+                                            notesViewModel.deleteNote(id)
+                                            navController.popBackStack()
+                                        },
+                                        onArchiveClick = {
+                                            notesViewModel.archiveNote(id)
+                                            navController.popBackStack()
+                                        },
+                                        onTextUpdate = { newText ->
+                                            val req = com.shishocompanion.data.CreateNoteRequest(
+                                                userId = item.userId,
+                                                title = item.title,
+                                                text = newText,
+                                                attachment = item.attachment,
+                                                archived = item.archived
+                                            )
+                                            notesViewModel.updateNote(id, req)
+                                        },
+                                        onNavigateBack = { navController.popBackStack() }
+                                    )
                                 }
                             }
-                            composable("edit_note/{id}") { backStackEntry ->
-                                val id = backStackEntry.arguments?.getString("id")
-                                if (id != null) {
-                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == id } ?: notesViewModel.getNoteById(id)
-                                    if (item != null) {
-                                        EditNoteScreen(
-                                            item = item,
-                                            onSave = { req -> notesViewModel.updateNote(id, req) },
-                                            onNavigateBack = { navController.popBackStack() }
-                                        )
-                                    }
+                            composable<EditNote> { backStackEntry ->
+                                val route = backStackEntry.toRoute<EditNote>()
+                                val id = route.id
+                                val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == id } ?: notesViewModel.getNoteById(id)
+                                if (item != null) {
+                                    EditNoteScreen(
+                                        item = item,
+                                        onSave = { req -> notesViewModel.updateNote(id, req) },
+                                        onNavigateBack = { navController.popBackStack() }
+                                    )
                                 }
                             }
                             composable<Settings> {
@@ -1121,38 +1117,36 @@ class MainActivity : ComponentActivity() {
                                     onNavigateBack = { navController.popBackStack() }
                                 )
                             }
-                            composable("reminder_detail/{id}") { backStackEntry ->
-                                val id = backStackEntry.arguments?.getString("id")
-                                if (id != null) {
-                                    val item = remindersUiState.reminders.find { it.id == id } ?: remindersViewModel.getReminderById(id)
-                                    if (item != null) {
-                                        ReminderDetailScreen(
-                                            item = item,
-                                            use24HourTime = use24HourTime,
-                                            dateFormatPreference = dateFormatPreference,
-                                            onEditClick = { navController.navigate(EditReminder(id)) },
-                                            onDeleteClick = {
-                                                remindersViewModel.deleteReminder(id)
-                                                navController.popBackStack()
-                                            },
-                                            onNavigateBack = { navController.popBackStack() }
-                                        )
-                                    }
+                            composable<ReminderDetail> { backStackEntry ->
+                                val route = backStackEntry.toRoute<ReminderDetail>()
+                                val id = route.id
+                                val item = remindersUiState.reminders.find { it.id == id } ?: remindersViewModel.getReminderById(id)
+                                if (item != null) {
+                                    ReminderDetailScreen(
+                                        item = item,
+                                        use24HourTime = use24HourTime,
+                                        dateFormatPreference = dateFormatPreference,
+                                        onEditClick = { navController.navigate(EditReminder(id)) },
+                                        onDeleteClick = {
+                                            remindersViewModel.deleteReminder(id)
+                                            navController.popBackStack()
+                                        },
+                                        onNavigateBack = { navController.popBackStack() }
+                                    )
                                 }
                             }
-                            composable("edit_reminder/{id}") { backStackEntry ->
-                                val id = backStackEntry.arguments?.getString("id")
-                                if (id != null) {
-                                    val item = remindersUiState.reminders.find { it.id == id } ?: remindersViewModel.getReminderById(id)
-                                    if (item != null) {
-                                        EditReminderScreen(
-                                            item = item,
-                                            use24HourTime = use24HourTime,
-                                            dateFormatPreference = dateFormatPreference,
-                                            onSave = { req -> remindersViewModel.updateReminder(id, req) },
-                                            onNavigateBack = { navController.popBackStack() }
-                                        )
-                                    }
+                            composable<EditReminder> { backStackEntry ->
+                                val route = backStackEntry.toRoute<EditReminder>()
+                                val id = route.id
+                                val item = remindersUiState.reminders.find { it.id == id } ?: remindersViewModel.getReminderById(id)
+                                if (item != null) {
+                                    EditReminderScreen(
+                                        item = item,
+                                        use24HourTime = use24HourTime,
+                                        dateFormatPreference = dateFormatPreference,
+                                        onSave = { req -> remindersViewModel.updateReminder(id, req) },
+                                        onNavigateBack = { navController.popBackStack() }
+                                    )
                                 }
                             }
                         }
