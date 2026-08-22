@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.shishocompanion.data.ReadingListItem
 import com.shishocompanion.ui.components.CustomPullToRefreshBox
-import com.shishocompanion.ui.components.CustomSwipeToDismissBox
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,9 +29,7 @@ fun ReadingListScreen(
     hasUnreadAnnouncements: Boolean,
     onSyncClick: () -> Unit,
     onItemClick: (String) -> Unit,
-    onSettingsClick: () -> Unit,
-    onDeleteReadingListItem: (String) -> Unit,
-    swipeActionPreference: String = "DELETE"
+    onSettingsClick: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -96,13 +93,7 @@ fun ReadingListScreen(
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
                                 items(uiState.items, key = { it.id }) { item ->
-                                    CustomSwipeToDismissBox(
-                                        swipeActionPreference = swipeActionPreference,
-                                        onDismiss = { onDeleteReadingListItem(item.id) },
-                                        onArchive = { onDeleteReadingListItem(item.id) }
-                                    ) {
-                                        ReadingListItemCard(item = item, onClick = { onItemClick(item.id) })
-                                    }
+                                    ReadingListItemCard(item = item, onClick = { onItemClick(item.id) })
                                 }
                             }
                         }

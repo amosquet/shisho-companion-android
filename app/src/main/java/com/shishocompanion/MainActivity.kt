@@ -479,8 +479,7 @@ class MainActivity : ComponentActivity() {
                                                     hasUnreadAnnouncements = hasUnreadAnnouncements,
                                                     onSyncClick = { listViewModel.syncReadingList() },
                                                     onItemClick = { id -> listRightPaneState = RightPaneState.View(id) },
-                                                    onSettingsClick = { navController.navigate(Settings) },
-                                                    onDeleteReadingListItem = { listViewModel.deleteItem(it) }
+                                                    onSettingsClick = { navController.navigate(Settings) }
                                                 )
                                             }
                                         },
@@ -545,8 +544,7 @@ class MainActivity : ComponentActivity() {
                                         hasUnreadAnnouncements = hasUnreadAnnouncements,
                                         onSyncClick = { listViewModel.syncReadingList() },
                                         onItemClick = { id -> navController.navigate(Detail(id)) },
-                                        onSettingsClick = { navController.navigate(Settings) },
-                                        onDeleteReadingListItem = { listViewModel.deleteItem(it) }
+                                        onSettingsClick = { navController.navigate(Settings) }
                                     )
                                 }
                             }
