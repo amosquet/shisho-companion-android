@@ -11,9 +11,12 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.shishocompanion.R
 import com.shishocompanion.data.ReminderItem
-import java.text.SimpleDateFormat
-import java.util.Locale
-import java.util.TimeZone
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoField
 
 object NotificationHelper {
     const val CHANNEL_ID = "reminders_channel"
@@ -102,27 +105,24 @@ object NotificationHelper {
         }
     }
 
+    private val pocketBaseFormatter: DateTimeFormatter = DateTimeFormatterBuilder()
+        .appendPattern("yyyy-MM-dd")
+        .appendOptional(DateTimeFormatter.ofPattern("'T'"))
+        .appendOptional(DateTimeFormatter.ofPattern("' '"))
+        .appendPattern("HH:mm:ss")
+        .optionalStart()
+        .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
+        .optionalEnd()
+        .toFormatter()
+
     private fun parseTime(timeStr: String): Long? {
         // Pocketbase format: "2022-01-01 01:02:03.456Z"
         return try {
-            // Replace space with T just in case, though simple date format handles spaces directly
             val normalized = timeStr.replace("Z", "").trim()
-            val format = if (normalized.contains(" ")) {
-                SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
-            } else {
-                SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US)
-            }
-            format.timeZone = TimeZone.getTimeZone("UTC")
-            format.parse(normalized)?.time
+            val localDateTime = LocalDateTime.parse(normalized, pocketBaseFormatter)
+            localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli()
         } catch (e: Exception) {
-            try {
-                // Fallback for simple format
-                val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
-                format.timeZone = TimeZone.getTimeZone("UTC")
-                format.parse(timeStr.replace("Z", "").trim())?.time
-            } catch (e2: Exception) {
-                null
-            }
+            null
         }
     }
 }
