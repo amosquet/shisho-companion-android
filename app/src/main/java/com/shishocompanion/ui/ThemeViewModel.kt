@@ -61,6 +61,26 @@ class ThemeViewModel @Inject constructor(
     private val _splitScreenPreference = MutableStateFlow(sharedPrefs.getBoolean("SPLIT_SCREEN_ENABLED", true))
     val splitScreenPreference: StateFlow<Boolean> = _splitScreenPreference.asStateFlow()
 
+    private val preferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        when (key) {
+            "THEME_PREFERENCE", "DARK_MODE" -> _themePreference.value = getThemePreferenceWithMigration(sharedPrefs)
+            "TIME_FORMAT_PREFERENCE", "USE_24_HOUR_TIME" -> _timeFormatPreference.value = getTimeFormatPreferenceWithMigration(sharedPrefs)
+            "DATE_FORMAT_PREFERENCE" -> _dateFormatPreference.value = sharedPrefs.getString("DATE_FORMAT_PREFERENCE", "SYSTEM") ?: "SYSTEM"
+            "LANGUAGE_PREFERENCE" -> _languagePreference.value = sharedPrefs.getString("LANGUAGE_PREFERENCE", "SYSTEM") ?: "SYSTEM"
+            "SEND_REMINDERS_TO_DISCORD" -> _sendRemindersToDiscordPreference.value = sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false)
+            "SPLIT_SCREEN_ENABLED" -> _splitScreenPreference.value = sharedPrefs.getBoolean("SPLIT_SCREEN_ENABLED", true)
+        }
+    }
+
+    init {
+        sharedPrefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        sharedPrefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
+    }
+
     fun setThemePreference(theme: String) {
         sharedPrefs.edit().putString("THEME_PREFERENCE", theme).apply()
         _themePreference.value = theme
@@ -127,6 +147,22 @@ class ThemeViewModel @Inject constructor(
     fun setLanguagePreference(lang: String) {
         sharedPrefs.edit().putString("LANGUAGE_PREFERENCE", lang).apply()
         _languagePreference.value = lang
+        
+        viewModelScope.launch {
+            if (!repository.authToken.isNullOrEmpty()) {
+                val currentMeResult = repository.getMe()
+                if (currentMeResult.isSuccess) {
+                    val me = currentMeResult.getOrNull()
+                    val currentGeneral = me?.preferences?.general ?: com.shishocompanion.data.GeneralPreferences()
+                    val newPrefs = me?.preferences?.copy(
+                        general = currentGeneral.copy(language = lang)
+                    ) ?: com.shishocompanion.data.Preferences(
+                        general = com.shishocompanion.data.GeneralPreferences(language = lang)
+                    )
+                    repository.updatePreferences(newPrefs)
+                }
+            }
+        }
     }
 
     fun setSplitScreenPreference(enabled: Boolean) {

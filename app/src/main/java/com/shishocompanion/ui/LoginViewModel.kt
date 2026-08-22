@@ -46,6 +46,10 @@ class LoginViewModel @Inject constructor(
             
             if (com.shishocompanion.data.TokenUtils.isTokenExpired(savedToken)) {
                 _showSessionExpiredDialog.value = true
+            } else {
+                viewModelScope.launch {
+                    fetchAndSavePreferences()
+                }
             }
         } else if (sharedPrefs.getBoolean("IS_GUEST", false)) {
             _uiState.value = LoginUiState.Guest
@@ -80,6 +84,27 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    private suspend fun fetchAndSavePreferences() {
+        val meResult = repository.getMe()
+        if (meResult.isSuccess) {
+            val me = meResult.getOrNull()
+            val prefs = me?.preferences
+            prefs?.let {
+                sharedPrefs.edit {
+                    putString("THEME_PREFERENCE", it.companion.theme)
+                        .putString("TIME_FORMAT_PREFERENCE", it.general.timeFormat)
+                        .putString("DATE_FORMAT_PREFERENCE", it.general.dateFormat)
+                        .putString("LANGUAGE_PREFERENCE", it.general.language)
+                        .putBoolean("SEND_REMINDERS_TO_DISCORD", it.general.sendRemindersToDiscord)
+                    it.companion.splitScreen?.let { split ->
+                        putBoolean("SPLIT_SCREEN_ENABLED", split)
+                    }
+                }
+            }
+            sharedPrefs.edit { putString("DISCORD_ID", me?.discordId ?: "") }
+        }
+    }
+
     private suspend fun onLoginSuccess() {
         val userId = repository.userId ?: ""
         val token = repository.authToken ?: ""
@@ -90,22 +115,7 @@ class LoginViewModel @Inject constructor(
         reminderRepository.userId = userId
         
         // Fetch preferences
-        val meResult = repository.getMe()
-        if (meResult.isSuccess) {
-            val me = meResult.getOrNull()
-            val prefs = me?.preferences
-            prefs?.let {
-                sharedPrefs.edit {
-                    putString("THEME_PREFERENCE", it.companion.theme)
-                        .putString("TIME_FORMAT_PREFERENCE", it.general.timeFormat)
-                        .putBoolean("SEND_REMINDERS_TO_DISCORD", it.general.sendRemindersToDiscord)
-                    it.companion.splitScreen?.let { split ->
-                        putBoolean("SPLIT_SCREEN_ENABLED", split)
-                    }
-                }
-            }
-            sharedPrefs.edit { putString("DISCORD_ID", me?.discordId ?: "") }
-        }
+        fetchAndSavePreferences()
         
         val email = repository.userEmail ?: ""
 
