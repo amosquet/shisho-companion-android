@@ -90,4 +90,35 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setDynamicColorEnabled(value: Boolean) {
         dataStore.edit { it[DYNAMIC_COLOR_ENABLED] = value }
     }
+
+    suspend fun updateFromRemote(preferences: com.shishocompanion.data.Preferences?, discordId: String?) {
+        dataStore.edit { prefs ->
+            if (preferences != null) {
+                if (preferences.companion.theme.isNotBlank()) {
+                    prefs[THEME_PREFERENCE] = preferences.companion.theme
+                }
+                preferences.companion.splitScreen?.let {
+                    prefs[SPLIT_SCREEN_ENABLED] = it
+                }
+                if (preferences.general.timeFormat.isNotBlank()) {
+                    prefs[TIME_FORMAT_PREFERENCE] = preferences.general.timeFormat
+                }
+                if (preferences.general.dateFormat.isNotBlank()) {
+                    prefs[DATE_FORMAT_PREFERENCE] = preferences.general.dateFormat
+                }
+                if (preferences.general.language.isNotBlank()) {
+                    prefs[LANGUAGE_PREFERENCE] = preferences.general.language
+                }
+                prefs[SEND_REMINDERS_TO_DISCORD] = preferences.general.sendRemindersToDiscord
+            }
+            if (discordId != null) {
+                prefs[DISCORD_DISPLAY_ID] = discordId
+            }
+        }
+    }
+
+    suspend fun clear() {
+        dataStore.edit { it.clear() }
+    }
 }
+

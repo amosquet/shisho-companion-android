@@ -407,18 +407,53 @@ class ReadingListRepository(
         }
     }
 
-    suspend fun searchGoogleBooks(query: String, isIsbn: Boolean, apiKey: String): VolumeInfo? {
+    suspend fun searchGoogleBooks(
+        title: String? = null,
+        author: String? = null,
+        isbn: String? = null,
+        apiKey: String = ""
+    ): List<VolumeInfo> {
         return try {
-            val q = if (isIsbn) "isbn:$query" else "intitle:$query"
+            val qParts = mutableListOf<String>()
+            if (!isbn.isNullOrBlank()) {
+                qParts.add("isbn:${isbn.trim()}")
+            } else {
+                val cleanTitle = title?.trim()
+                val cleanAuthor = author?.trim()
+
+                if (!cleanTitle.isNullOrBlank() && cleanAuthor.isNullOrBlank() && cleanTitle.contains(" by ", ignoreCase = true)) {
+                    val parts = cleanTitle.split(Regex("(?i)\\s+by\\s+"), limit = 2)
+                    if (parts.size == 2 && parts[0].isNotBlank() && parts[1].isNotBlank()) {
+                        qParts.add("intitle:${parts[0].trim()}")
+                        qParts.add("inauthor:${parts[1].trim()}")
+                    } else {
+                        qParts.add("intitle:$cleanTitle")
+                    }
+                } else {
+                    if (!cleanTitle.isNullOrBlank()) {
+                        qParts.add("intitle:$cleanTitle")
+                    }
+                    if (!cleanAuthor.isNullOrBlank()) {
+                        qParts.add("inauthor:$cleanAuthor")
+                    }
+                }
+            }
+
+            val q = qParts.joinToString(" ")
+            if (q.isBlank()) return emptyList()
+
             val response: GoogleBooksResponse = client.get("https://www.googleapis.com/books/v1/volumes") {
                 parameter("q", q)
-                parameter("key", apiKey)
+                parameter("maxResults", 20)
+                if (apiKey.isNotBlank()) {
+                    parameter("key", apiKey)
+                }
             }.body()
 
-            response.items?.firstOrNull()?.volumeInfo
+            response.items?.mapNotNull { it.volumeInfo } ?: emptyList()
         } catch (e: Exception) {
             e.printStackTrace()
-            null
+            emptyList()
         }
     }
 }

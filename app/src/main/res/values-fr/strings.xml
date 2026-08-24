@@ -109,4 +109,7 @@
     <string name="clear_search">Effacer la recherche</string>
     <string name="dynamic_color">Couleur dynamique</string>
     <string name="dynamic_color_description">Appliquer les couleurs du fond d\'écran à l\'application</string>
+    <string name="select_book">Sélectionner un livre</string>
+    <string name="no_books_found">Aucun livre trouvé</string>
+    <string name="searching">Recherche en cours…</string>
 </resources>

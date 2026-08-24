@@ -15,7 +15,9 @@ data class GoogleBookItem(
 @Serializable
 data class VolumeInfo(
     val title: String? = null,
+    val subtitle: String? = null,
     val authors: List<String>? = null,
+    val publishedDate: String? = null,
     val description: String? = null,
     val industryIdentifiers: List<IndustryIdentifier>? = null,
     val imageLinks: ImageLinks? = null

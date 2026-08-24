@@ -567,8 +567,8 @@ class MainActivity : ComponentActivity() {
                                             listViewModel.addItem(req)
                                         },
                                         onNavigateBack = { navController.popBackStack() },
-                                        onSearchBooks = { query, isIsbn, onResult ->
-                                            listViewModel.searchGoogleBooks(query, isIsbn, onResult)
+                                        onSearchBooks = { title, author, isbn, onResult ->
+                                            listViewModel.searchGoogleBooks(title, author, isbn, onResult)
                                         }
                                     )
                                 }
@@ -599,7 +599,10 @@ class MainActivity : ComponentActivity() {
                                             onSave = { req ->
                                                 listViewModel.updateItem(id, req)
                                             },
-                                            onNavigateBack = { navController.popBackStack() }
+                                            onNavigateBack = { navController.popBackStack() },
+                                            onSearchBooks = { title, author, isbn, onResult ->
+                                                listViewModel.searchGoogleBooks(title, author, isbn, onResult)
+                                            }
                                         )
                                     }
                                 }

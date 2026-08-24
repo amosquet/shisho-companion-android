@@ -10,15 +10,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
-import android.content.SharedPreferences
+import com.shishocompanion.data.UserPreferencesRepository
 import com.shishocompanion.data.VolumeInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 @HiltViewModel
 class ReadingListViewModel @Inject constructor(
     private val repository: ReadingListRepository,
-    private val sharedPrefs: SharedPreferences
+    private val userPrefs: UserPreferencesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ReadingListUiState>(ReadingListUiState.Loading)
@@ -73,14 +74,15 @@ class ReadingListViewModel @Inject constructor(
         return null
     }
 
-    fun searchGoogleBooks(query: String, isIsbn: Boolean, onResult: (VolumeInfo?) -> Unit) {
+    fun searchGoogleBooks(
+        title: String? = null,
+        author: String? = null,
+        isbn: String? = null,
+        onResult: (List<VolumeInfo>) -> Unit
+    ) {
         viewModelScope.launch {
-            val apiKey = sharedPrefs.getString("GOOGLE_BOOKS_API_KEY", "") ?: ""
-            if (apiKey.isEmpty()) {
-                onResult(null)
-                return@launch
-            }
-            val result = repository.searchGoogleBooks(query, isIsbn, apiKey)
+            val apiKey = userPrefs.googleBooksApiKey.first()
+            val result = repository.searchGoogleBooks(title = title, author = author, isbn = isbn, apiKey = apiKey)
             onResult(result)
         }
     }

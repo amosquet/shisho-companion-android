@@ -21,13 +21,14 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import com.shishocompanion.data.VolumeInfo
 import androidx.compose.material.icons.filled.Search
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddReadingListItemScreen(
     onSave: (CreateReadingListItemRequest) -> Unit,
     onNavigateBack: () -> Unit,
-    onSearchBooks: (query: String, isIsbn: Boolean, onResult: (VolumeInfo?) -> Unit) -> Unit,
+    onSearchBooks: (title: String?, author: String?, isbn: String?, onResult: (List<VolumeInfo>) -> Unit) -> Unit,
     isSplitScreen: Boolean = false
 ) {
     var title by remember { mutableStateOf("") }
@@ -38,6 +39,12 @@ fun AddReadingListItemScreen(
     var endDate by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var coverUri by remember { mutableStateOf<Uri?>(null) }
+    var isSearchingTitle by remember { mutableStateOf(false) }
+    var isSearchingAuthor by remember { mutableStateOf(false) }
+    var isSearchingIsbn by remember { mutableStateOf(false) }
+    var searchResults by remember { mutableStateOf<List<VolumeInfo>?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current
     
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -46,7 +53,26 @@ fun AddReadingListItemScreen(
         coverUri = uri
     }
 
+    searchResults?.let { books ->
+        BookSelectionDialog(
+            books = books,
+            onSelect = { volumeInfo ->
+                volumeInfo.title?.let { title = it }
+                volumeInfo.authors?.joinToString(", ")?.let { author = it }
+                volumeInfo.description?.let { description = it }
+                val foundIsbn = volumeInfo.industryIdentifiers?.find { it.type == "ISBN_13" }?.identifier
+                    ?: volumeInfo.industryIdentifiers?.find { it.type == "ISBN_10" }?.identifier
+                if (!foundIsbn.isNullOrBlank()) {
+                    isbn = foundIsbn
+                }
+                searchResults = null
+            },
+            onDismiss = { searchResults = null }
+        )
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.add_to_reading_list)) },
@@ -80,19 +106,29 @@ fun AddReadingListItemScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 trailingIcon = {
-                    IconButton(onClick = {
-                        if (title.isNotBlank()) {
-                            onSearchBooks(title, false) { volumeInfo ->
-                                if (volumeInfo != null) {
-                                    volumeInfo.title?.let { title = it }
-                                    volumeInfo.authors?.firstOrNull()?.let { author = it }
-                                    volumeInfo.description?.let { description = it }
-                                    volumeInfo.industryIdentifiers?.find { it.type == "ISBN_13" || it.type == "ISBN_10" }?.let { isbn = it.identifier ?: "" }
+                    if (isSearchingTitle) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp).padding(4.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        IconButton(onClick = {
+                            if (title.isNotBlank()) {
+                                isSearchingTitle = true
+                                onSearchBooks(title, author.takeIf { it.isNotBlank() }, null) { results ->
+                                    isSearchingTitle = false
+                                    if (results.isEmpty()) {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(context.getString(R.string.no_books_found))
+                                        }
+                                    } else {
+                                        searchResults = results
+                                    }
                                 }
                             }
+                        }) {
+                            Icon(Icons.Filled.Search, contentDescription = "Search by Title")
                         }
-                    }) {
-                        Icon(Icons.Filled.Search, contentDescription = "Search by Title")
                     }
                 }
             )
@@ -101,7 +137,33 @@ fun AddReadingListItemScreen(
                 onValueChange = { author = it },
                 label = { Text(stringResource(R.string.author)) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                trailingIcon = {
+                    if (isSearchingAuthor) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp).padding(4.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        IconButton(onClick = {
+                            if (author.isNotBlank() || title.isNotBlank()) {
+                                isSearchingAuthor = true
+                                onSearchBooks(title.takeIf { it.isNotBlank() }, author.takeIf { it.isNotBlank() }, null) { results ->
+                                    isSearchingAuthor = false
+                                    if (results.isEmpty()) {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(context.getString(R.string.no_books_found))
+                                        }
+                                    } else {
+                                        searchResults = results
+                                    }
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Filled.Search, contentDescription = "Search by Author")
+                        }
+                    }
+                }
             )
             OutlinedTextField(
                 value = isbn,
@@ -110,18 +172,34 @@ fun AddReadingListItemScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 trailingIcon = {
-                    IconButton(onClick = {
-                        if (isbn.isNotBlank()) {
-                            onSearchBooks(isbn, true) { volumeInfo ->
-                                if (volumeInfo != null) {
-                                    volumeInfo.title?.let { title = it }
-                                    volumeInfo.authors?.firstOrNull()?.let { author = it }
-                                    volumeInfo.description?.let { description = it }
+                    if (isSearchingIsbn) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp).padding(4.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        IconButton(onClick = {
+                            if (isbn.isNotBlank()) {
+                                isSearchingIsbn = true
+                                onSearchBooks(null, null, isbn) { results ->
+                                    isSearchingIsbn = false
+                                    if (results.isEmpty()) {
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(context.getString(R.string.no_books_found))
+                                        }
+                                    } else if (results.size == 1) {
+                                        val volumeInfo = results[0]
+                                        volumeInfo.title?.let { title = it }
+                                        volumeInfo.authors?.joinToString(", ")?.let { author = it }
+                                        volumeInfo.description?.let { description = it }
+                                    } else {
+                                        searchResults = results
+                                    }
                                 }
                             }
+                        }) {
+                            Icon(Icons.Filled.Search, contentDescription = "Search by ISBN")
                         }
-                    }) {
-                        Icon(Icons.Filled.Search, contentDescription = "Search by ISBN")
                     }
                 }
             )

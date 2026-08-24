@@ -6,6 +6,7 @@ import com.shishocompanion.data.AppDatabase
 import com.shishocompanion.data.ReadingListRepository
 import com.shishocompanion.data.NoteRepository
 import com.shishocompanion.data.ReminderRepository
+import com.shishocompanion.data.UserPreferencesRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,7 @@ class LoginViewModel @Inject constructor(
     private val repository: ReadingListRepository,
     private val noteRepository: NoteRepository,
     private val reminderRepository: ReminderRepository,
+    private val userPrefs: UserPreferencesRepository,
     private val database: AppDatabase,
     private val sharedPrefs: SharedPreferences
 ) : ViewModel() {
@@ -88,20 +90,7 @@ class LoginViewModel @Inject constructor(
         val meResult = repository.getMe()
         if (meResult.isSuccess) {
             val me = meResult.getOrNull()
-            val prefs = me?.preferences
-            prefs?.let {
-                sharedPrefs.edit {
-                    putString("THEME_PREFERENCE", it.companion.theme)
-                        .putString("TIME_FORMAT_PREFERENCE", it.general.timeFormat)
-                        .putString("DATE_FORMAT_PREFERENCE", it.general.dateFormat)
-                        .putString("LANGUAGE_PREFERENCE", it.general.language)
-                        .putBoolean("SEND_REMINDERS_TO_DISCORD", it.general.sendRemindersToDiscord)
-                    it.companion.splitScreen?.let { split ->
-                        putBoolean("SPLIT_SCREEN_ENABLED", split)
-                    }
-                }
-            }
-            sharedPrefs.edit { putString("DISCORD_ID", me?.discordId ?: "") }
+            userPrefs.updateFromRemote(me?.preferences, me?.discordId)
         }
     }
 
@@ -142,6 +131,9 @@ class LoginViewModel @Inject constructor(
     fun logout() {
         viewModelScope.launch(Dispatchers.IO) {
             database.clearAllTables()
+        }
+        viewModelScope.launch {
+            userPrefs.clear()
         }
         sharedPrefs.edit { clear() }
         repository.authToken = null
