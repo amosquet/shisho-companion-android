@@ -98,4 +98,5 @@ dependencies {
     testImplementation(libs.junit)
     implementation(libs.richeditor.compose)
     implementation(libs.auth0.jwt)
+    implementation(libs.play.services.code.scanner)
 }

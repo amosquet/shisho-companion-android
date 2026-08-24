@@ -112,4 +112,7 @@
     <string name="select_book">Sélectionner un livre</string>
     <string name="no_books_found">Aucun livre trouvé</string>
     <string name="searching">Recherche en cours…</string>
+    <string name="scan_barcode">Scanner le code-barres</string>
+    <string name="barcode_scan_failed">Échec de la lecture du code-barres</string>
+    <string name="no_api_key_set">Aucune clé d\'API Google Books configurée. Veuillez en définir une dans les Paramètres.</string>
 </resources>

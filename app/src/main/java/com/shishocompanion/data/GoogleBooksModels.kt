@@ -34,3 +34,9 @@ data class ImageLinks(
     val thumbnail: String? = null,
     val smallThumbnail: String? = null
 )
+
+sealed interface BookSearchResult {
+    data class Success(val books: List<VolumeInfo>) : BookSearchResult
+    data object NoApiKey : BookSearchResult
+    data class Error(val message: String? = null) : BookSearchResult
+}

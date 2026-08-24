@@ -16,6 +16,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
+import com.shishocompanion.data.BookSearchResult
+
 @HiltViewModel
 class ReadingListViewModel @Inject constructor(
     private val repository: ReadingListRepository,
@@ -78,12 +80,16 @@ class ReadingListViewModel @Inject constructor(
         title: String? = null,
         author: String? = null,
         isbn: String? = null,
-        onResult: (List<VolumeInfo>) -> Unit
+        onResult: (BookSearchResult) -> Unit
     ) {
         viewModelScope.launch {
             val apiKey = userPrefs.googleBooksApiKey.first()
+            if (apiKey.isBlank()) {
+                onResult(BookSearchResult.NoApiKey)
+                return@launch
+            }
             val result = repository.searchGoogleBooks(title = title, author = author, isbn = isbn, apiKey = apiKey)
-            onResult(result)
+            onResult(BookSearchResult.Success(result))
         }
     }
 }

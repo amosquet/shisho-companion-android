@@ -20,7 +20,12 @@ import coil.compose.AsyncImage
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.shishocompanion.data.VolumeInfo
+import com.shishocompanion.data.BookSearchResult
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.QrCodeScanner
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
+import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,7 +33,7 @@ import kotlinx.coroutines.launch
 fun AddReadingListItemScreen(
     onSave: (CreateReadingListItemRequest) -> Unit,
     onNavigateBack: () -> Unit,
-    onSearchBooks: (title: String?, author: String?, isbn: String?, onResult: (List<VolumeInfo>) -> Unit) -> Unit,
+    onSearchBooks: (title: String?, author: String?, isbn: String?, onResult: (BookSearchResult) -> Unit) -> Unit,
     isSplitScreen: Boolean = false
 ) {
     var title by remember { mutableStateOf("") }
@@ -46,6 +51,59 @@ fun AddReadingListItemScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    val barcodeScannerOptions = remember {
+        GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_EAN_13,
+                Barcode.FORMAT_EAN_8,
+                Barcode.FORMAT_UPC_A
+            )
+            .build()
+    }
+    val barcodeScanner = remember(context, barcodeScannerOptions) {
+        GmsBarcodeScanning.getClient(context, barcodeScannerOptions)
+    }
+
+    val handleSearchResult: (BookSearchResult, ((VolumeInfo) -> Unit)?) -> Unit = { result, onSingleResult ->
+        when (result) {
+            is BookSearchResult.NoApiKey -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar(context.getString(R.string.no_api_key_set))
+                }
+            }
+            is BookSearchResult.Success -> {
+                if (result.books.isEmpty()) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(context.getString(R.string.no_books_found))
+                    }
+                } else if (result.books.size == 1 && onSingleResult != null) {
+                    onSingleResult(result.books[0])
+                } else {
+                    searchResults = result.books
+                }
+            }
+            is BookSearchResult.Error -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar(result.message ?: context.getString(R.string.no_books_found))
+                }
+            }
+        }
+    }
+
+    val performIsbnSearch: (String) -> Unit = { targetIsbn ->
+        if (targetIsbn.isNotBlank()) {
+            isSearchingIsbn = true
+            onSearchBooks(null, null, targetIsbn) { result ->
+                isSearchingIsbn = false
+                handleSearchResult(result) { volumeInfo ->
+                    volumeInfo.title?.let { title = it }
+                    volumeInfo.authors?.joinToString(", ")?.let { author = it }
+                    volumeInfo.description?.let { description = it }
+                }
+            }
+        }
+    }
     
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -115,15 +173,9 @@ fun AddReadingListItemScreen(
                         IconButton(onClick = {
                             if (title.isNotBlank()) {
                                 isSearchingTitle = true
-                                onSearchBooks(title, author.takeIf { it.isNotBlank() }, null) { results ->
+                                onSearchBooks(title, author.takeIf { it.isNotBlank() }, null) { result ->
                                     isSearchingTitle = false
-                                    if (results.isEmpty()) {
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar(context.getString(R.string.no_books_found))
-                                        }
-                                    } else {
-                                        searchResults = results
-                                    }
+                                    handleSearchResult(result, null)
                                 }
                             }
                         }) {
@@ -148,15 +200,9 @@ fun AddReadingListItemScreen(
                         IconButton(onClick = {
                             if (author.isNotBlank() || title.isNotBlank()) {
                                 isSearchingAuthor = true
-                                onSearchBooks(title.takeIf { it.isNotBlank() }, author.takeIf { it.isNotBlank() }, null) { results ->
+                                onSearchBooks(title.takeIf { it.isNotBlank() }, author.takeIf { it.isNotBlank() }, null) { result ->
                                     isSearchingAuthor = false
-                                    if (results.isEmpty()) {
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar(context.getString(R.string.no_books_found))
-                                        }
-                                    } else {
-                                        searchResults = results
-                                    }
+                                    handleSearchResult(result, null)
                                 }
                             }
                         }) {
@@ -172,33 +218,36 @@ fun AddReadingListItemScreen(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 trailingIcon = {
-                    if (isSearchingIsbn) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp).padding(4.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = {
-                            if (isbn.isNotBlank()) {
-                                isSearchingIsbn = true
-                                onSearchBooks(null, null, isbn) { results ->
-                                    isSearchingIsbn = false
-                                    if (results.isEmpty()) {
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar(context.getString(R.string.no_books_found))
-                                        }
-                                    } else if (results.size == 1) {
-                                        val volumeInfo = results[0]
-                                        volumeInfo.title?.let { title = it }
-                                        volumeInfo.authors?.joinToString(", ")?.let { author = it }
-                                        volumeInfo.description?.let { description = it }
-                                    } else {
-                                        searchResults = results
+                            barcodeScanner.startScan()
+                                .addOnSuccessListener { barcode ->
+                                    val rawValue = barcode.rawValue
+                                    if (!rawValue.isNullOrBlank()) {
+                                        isbn = rawValue
+                                        performIsbnSearch(rawValue)
                                     }
                                 }
-                            }
+                                .addOnCanceledListener { }
+                                .addOnFailureListener {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(context.getString(R.string.barcode_scan_failed))
+                                    }
+                                }
                         }) {
-                            Icon(Icons.Filled.Search, contentDescription = "Search by ISBN")
+                            Icon(Icons.Filled.QrCodeScanner, contentDescription = stringResource(R.string.scan_barcode))
+                        }
+                        if (isSearchingIsbn) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp).padding(4.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            IconButton(onClick = {
+                                performIsbnSearch(isbn)
+                            }) {
+                                Icon(Icons.Filled.Search, contentDescription = "Search by ISBN")
+                            }
                         }
                     }
                 }

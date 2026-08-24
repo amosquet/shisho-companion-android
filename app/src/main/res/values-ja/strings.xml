@@ -112,4 +112,7 @@
     <string name="select_book">本を選択</string>
     <string name="no_books_found">本が見つかりませんでした</string>
     <string name="searching">検索中…</string>
+    <string name="scan_barcode">バーコードをスキャン</string>
+    <string name="barcode_scan_failed">バーコードのスキャンに失敗しました</string>
+    <string name="no_api_key_set">Google Books APIキーが設定されていません。設定でAPIキーを設定してください。</string>
 </resources>

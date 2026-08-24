@@ -119,4 +119,7 @@
     <string name="select_book">Select a Book</string>
     <string name="no_books_found">No books found</string>
     <string name="searching">Searching…</string>
+    <string name="scan_barcode">Scan Barcode</string>
+    <string name="barcode_scan_failed">Failed to scan barcode</string>
+    <string name="no_api_key_set">No Google Books API key configured. Please set one in Settings.</string>
 </resources>
