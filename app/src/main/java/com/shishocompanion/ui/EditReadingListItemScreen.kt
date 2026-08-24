@@ -105,7 +105,7 @@ fun EditReadingListItemScreen(
                     onValueChange = {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.status)) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    modifier = Modifier.fillMaxWidth().menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                 )

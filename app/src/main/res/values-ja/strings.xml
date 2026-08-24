@@ -101,4 +101,12 @@
     <string name="guest">ゲスト</string>
     <string name="add_note_shortcut_short">新規メモ</string>
     <string name="add_note_shortcut_long">新しいメモを作成する</string>
+    <string name="search">検索</string>
+    <string name="search_notes">メモを検索</string>
+    <string name="search_notes_placeholder">メモを検索…</string>
+    <string name="search_notes_prompt">キーワードを入力してメモを検索…</string>
+    <string name="no_matching_notes">一致するメモが見つかりません。</string>
+    <string name="clear_search">検索をクリア</string>
+    <string name="dynamic_color">ダイナミックカラー</string>
+    <string name="dynamic_color_description">壁紙の色をアプリ全体に適用します</string>
 </resources>

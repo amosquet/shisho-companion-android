@@ -8,11 +8,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.CheckBox
 import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
@@ -46,7 +49,15 @@ fun NotesListScreen(
     swipeActionPreference: String = "DELETE"
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearchActive by remember { mutableStateOf(false) }
     val inSelectionMode = selectedNoteIds.isNotEmpty()
+
+    BackHandler(enabled = isSearchActive) {
+        isSearchActive = false
+        searchQuery = ""
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -67,6 +78,9 @@ fun NotesListScreen(
                             Icon(Icons.Filled.Delete, contentDescription = "Delete selected notes")
                         }
                     } else {
+                        IconButton(onClick = { isSearchActive = true }) {
+                            Icon(Icons.Filled.Search, contentDescription = stringResource(R.string.search_notes))
+                        }
                         IconButton(onClick = onArchiveClick) {
                             Icon(Icons.Filled.Archive, contentDescription = "Archived Notes")
                         }
@@ -146,6 +160,98 @@ fun NotesListScreen(
                                             onLongClick = { onToggleSelection(item.id) }
                                         )
                                     }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (isSearchActive) {
+                SearchBar(
+                    inputField = {
+                        SearchBarDefaults.InputField(
+                            query = searchQuery,
+                            onQueryChange = { searchQuery = it },
+                            onSearch = { },
+                            expanded = isSearchActive,
+                            onExpandedChange = { isSearchActive = it },
+                            placeholder = { Text(stringResource(R.string.search_notes_placeholder)) },
+                            leadingIcon = {
+                                IconButton(onClick = {
+                                    isSearchActive = false
+                                    searchQuery = ""
+                                }) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                                }
+                            },
+                            trailingIcon = {
+                                if (searchQuery.isNotEmpty()) {
+                                    IconButton(onClick = { searchQuery = "" }) {
+                                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.clear_search))
+                                    }
+                                }
+                            }
+                        )
+                    },
+                    expanded = isSearchActive,
+                    onExpandedChange = { isSearchActive = it },
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    if (uiState is NotesUiState.Success) {
+                        val searchResults = remember(uiState.items, searchQuery) {
+                            if (searchQuery.isBlank()) emptyList()
+                            else uiState.items.filter {
+                                !it.archived && (
+                                    it.title.contains(searchQuery, ignoreCase = true) ||
+                                    it.text.contains(searchQuery, ignoreCase = true)
+                                )
+                            }
+                        }
+                        if (searchQuery.isBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.search_notes_prompt),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                        } else if (searchResults.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.no_matching_notes),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                items(searchResults, key = { it.id }) { item ->
+                                    NoteItemCard(
+                                        item = item,
+                                        isSelected = false,
+                                        dateFormatPreference = dateFormatPreference,
+                                        onClick = {
+                                            isSearchActive = false
+                                            searchQuery = ""
+                                            onItemClick(item.id)
+                                        },
+                                        onLongClick = {}
+                                    )
                                 }
                             }
                         }

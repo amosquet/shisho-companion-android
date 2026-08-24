@@ -30,6 +30,8 @@ fun SettingsScreen(
     userEmail: String,
     themePreference: String,
     onThemePreferenceChanged: (String) -> Unit,
+    dynamicColorPreference: Boolean = false,
+    onDynamicColorPreferenceChanged: (Boolean) -> Unit = {},
     timeFormatPreference: String,
     onTimeFormatPreferenceChanged: (String) -> Unit,
     dateFormatPreference: String,
@@ -111,58 +113,54 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        var themeDropdownExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            TextButton(onClick = { themeDropdownExpanded = true }) {
+                        SettingsDropdown(
+                            selectedText = when (themePreference) {
+                                "LIGHT" -> stringResource(R.string.light)
+                                "DARK" -> stringResource(R.string.dark)
+                                "OLED" -> stringResource(R.string.oled)
+                                else -> stringResource(R.string.system_default)
+                            },
+                            options = listOf(
+                                "SYSTEM" to stringResource(R.string.system_default),
+                                "LIGHT" to stringResource(R.string.light),
+                                "DARK" to stringResource(R.string.dark),
+                                "OLED" to stringResource(R.string.oled)
+                            ),
+                            onOptionSelected = onThemePreferenceChanged
+                        )
+                    }
+
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
                                 Text(
-                                    text = when (themePreference) {
-                                        "LIGHT" -> "Light"
-                                        "DARK" -> "Dark"
-                                        "OLED" -> "OLED"
-                                        else -> "System"
-                                    }
+                                    text = stringResource(R.string.dynamic_color),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = stringResource(R.string.dynamic_color_description),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
                             }
-                            DropdownMenu(
-                                expanded = themeDropdownExpanded,
-                                onDismissRequest = { themeDropdownExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.system_default)) },
-                                    onClick = {
-                                        onThemePreferenceChanged("SYSTEM")
-                                        themeDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.light)) },
-                                    onClick = {
-                                        onThemePreferenceChanged("LIGHT")
-                                        themeDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.dark)) },
-                                    onClick = {
-                                        onThemePreferenceChanged("DARK")
-                                        themeDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.oled)) },
-                                    onClick = {
-                                        onThemePreferenceChanged("OLED")
-                                        themeDropdownExpanded = false
-                                    }
-                                )
-                            }
+                            Switch(
+                                checked = dynamicColorPreference,
+                                onCheckedChange = { onDynamicColorPreferenceChanged(it) }
+                            )
                         }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
@@ -186,44 +184,19 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        var timeFormatDropdownExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            TextButton(onClick = { timeFormatDropdownExpanded = true }) {
-                                Text(
-                                    text = when (timeFormatPreference) {
-                                        "12_HOUR" -> "12-Hour"
-                                        "24_HOUR" -> "24-Hour"
-                                        else -> "System"
-                                    }
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = timeFormatDropdownExpanded,
-                                onDismissRequest = { timeFormatDropdownExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.system_default)) },
-                                    onClick = {
-                                        onTimeFormatPreferenceChanged("SYSTEM")
-                                        timeFormatDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.twelve_hour)) },
-                                    onClick = {
-                                        onTimeFormatPreferenceChanged("12_HOUR")
-                                        timeFormatDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.twenty_four_hour)) },
-                                    onClick = {
-                                        onTimeFormatPreferenceChanged("24_HOUR")
-                                        timeFormatDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
+                        SettingsDropdown(
+                            selectedText = when (timeFormatPreference) {
+                                "12_HOUR" -> stringResource(R.string.twelve_hour)
+                                "24_HOUR" -> stringResource(R.string.twenty_four_hour)
+                                else -> stringResource(R.string.system_default)
+                            },
+                            options = listOf(
+                                "SYSTEM" to stringResource(R.string.system_default),
+                                "12_HOUR" to stringResource(R.string.twelve_hour),
+                                "24_HOUR" to stringResource(R.string.twenty_four_hour)
+                            ),
+                            onOptionSelected = onTimeFormatPreferenceChanged
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -238,52 +211,21 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        var dateFormatDropdownExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            TextButton(onClick = { dateFormatDropdownExpanded = true }) {
-                                Text(
-                                    text = when (dateFormatPreference) {
-                                        "DD_MM_YYYY" -> stringResource(R.string.format_dd_mm_yyyy)
-                                        "MM_DD_YYYY" -> stringResource(R.string.format_mm_dd_yyyy)
-                                        "YYYY_MM_DD" -> stringResource(R.string.format_yyyy_mm_dd)
-                                        else -> stringResource(R.string.system_default)
-                                    }
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = dateFormatDropdownExpanded,
-                                onDismissRequest = { dateFormatDropdownExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.system_default)) },
-                                    onClick = {
-                                        onDateFormatPreferenceChanged("SYSTEM")
-                                        dateFormatDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.format_dd_mm_yyyy)) },
-                                    onClick = {
-                                        onDateFormatPreferenceChanged("DD_MM_YYYY")
-                                        dateFormatDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.format_mm_dd_yyyy)) },
-                                    onClick = {
-                                        onDateFormatPreferenceChanged("MM_DD_YYYY")
-                                        dateFormatDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.format_yyyy_mm_dd)) },
-                                    onClick = {
-                                        onDateFormatPreferenceChanged("YYYY_MM_DD")
-                                        dateFormatDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
+                        SettingsDropdown(
+                            selectedText = when (dateFormatPreference) {
+                                "DD_MM_YYYY" -> stringResource(R.string.format_dd_mm_yyyy)
+                                "MM_DD_YYYY" -> stringResource(R.string.format_mm_dd_yyyy)
+                                "YYYY_MM_DD" -> stringResource(R.string.format_yyyy_mm_dd)
+                                else -> stringResource(R.string.system_default)
+                            },
+                            options = listOf(
+                                "SYSTEM" to stringResource(R.string.system_default),
+                                "DD_MM_YYYY" to stringResource(R.string.format_dd_mm_yyyy),
+                                "MM_DD_YYYY" to stringResource(R.string.format_mm_dd_yyyy),
+                                "YYYY_MM_DD" to stringResource(R.string.format_yyyy_mm_dd)
+                            ),
+                            onOptionSelected = onDateFormatPreferenceChanged
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -298,52 +240,21 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        var languageDropdownExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            TextButton(onClick = { languageDropdownExpanded = true }) {
-                                Text(
-                                    text = when (languagePreference) {
-                                        "en" -> "English"
-                                        "fr" -> "Français"
-                                        "ja" -> "日本語"
-                                        else -> "System Default"
-                                    }
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = languageDropdownExpanded,
-                                onDismissRequest = { languageDropdownExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.system_default)) },
-                                    onClick = {
-                                        onLanguagePreferenceChanged("SYSTEM")
-                                        languageDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.english)) },
-                                    onClick = {
-                                        onLanguagePreferenceChanged("en")
-                                        languageDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.french)) },
-                                    onClick = {
-                                        onLanguagePreferenceChanged("fr")
-                                        languageDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.japanese)) },
-                                    onClick = {
-                                        onLanguagePreferenceChanged("ja")
-                                        languageDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
+                        SettingsDropdown(
+                            selectedText = when (languagePreference) {
+                                "en" -> stringResource(R.string.english)
+                                "fr" -> stringResource(R.string.french)
+                                "ja" -> stringResource(R.string.japanese)
+                                else -> stringResource(R.string.system_default)
+                            },
+                            options = listOf(
+                                "SYSTEM" to stringResource(R.string.system_default),
+                                "en" to stringResource(R.string.english),
+                                "fr" to stringResource(R.string.french),
+                                "ja" to stringResource(R.string.japanese)
+                            ),
+                            onOptionSelected = onLanguagePreferenceChanged
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -376,43 +287,24 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        var swipeActionDropdownExpanded by remember { mutableStateOf(false) }
-                        Box {
-                            TextButton(onClick = { swipeActionDropdownExpanded = true }) {
-                                Text(
-                                    text = when (swipeActionPreference) {
-                                        "ARCHIVE" -> "Archive"
-                                        "DELETE" -> "Delete"
-                                        else -> "Delete"
-                                    }
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = swipeActionDropdownExpanded,
-                                onDismissRequest = { swipeActionDropdownExpanded = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text("Delete") },
-                                    onClick = {
-                                        onSwipeActionPreferenceChanged("DELETE")
-                                        swipeActionDropdownExpanded = false
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text("Archive") },
-                                    onClick = {
-                                        onSwipeActionPreferenceChanged("ARCHIVE")
-                                        swipeActionDropdownExpanded = false
-                                    }
-                                )
-                            }
-                        }
+                        SettingsDropdown(
+                            selectedText = when (swipeActionPreference) {
+                                "ARCHIVE" -> "Archive"
+                                "DELETE" -> "Delete"
+                                else -> "Delete"
+                            },
+                            options = listOf(
+                                "DELETE" to "Delete",
+                                "ARCHIVE" to "Archive"
+                            ),
+                            onOptionSelected = onSwipeActionPreferenceChanged
+                        )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
@@ -443,7 +335,7 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(stringResource(R.string.discord_integration), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -562,7 +454,7 @@ fun SettingsScreen(
 
             if (announcements.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(24.dp))
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(24.dp))
                 Text(stringResource(R.string.announcements), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -637,6 +529,47 @@ fun SettingsScreen(
             }
             
             Spacer(modifier = Modifier.height(32.dp))
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun <T> SettingsDropdown(
+    selectedText: String,
+    options: List<Pair<T, String>>,
+    onOptionSelected: (T) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        TextButton(
+            onClick = { expanded = true },
+            modifier = Modifier.menuAnchor(
+                type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                enabled = true
+            )
+        ) {
+            Text(text = selectedText)
+        }
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            options.forEach { (value, label) ->
+                DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        onOptionSelected(value)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }

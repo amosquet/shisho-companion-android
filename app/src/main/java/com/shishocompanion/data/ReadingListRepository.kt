@@ -15,9 +15,12 @@ import com.shishocompanion.data.VolumeInfo
 
 import com.shishocompanion.BuildConfig
 
+import android.content.Context
+
 class ReadingListRepository(
     private val client: HttpClient,
     private val dao: ReadingListDao,
+    private val context: Context,
     private val baseUrl: String = BuildConfig.POCKETBASE_URL,
     private val shishoApiUrl: String = BuildConfig.SHISHO_API_URL
 ) {
@@ -275,7 +278,7 @@ class ReadingListRepository(
                     authToken?.let { header("Authorization", "Bearer $it") }
                     setBody(buildMultipartData(finalReq))
                 }
-                sync()
+                SyncManager.scheduleSync(context)
                 return
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -304,11 +307,7 @@ class ReadingListRepository(
         )
         dao.insertItem(newEntity)
         // Attempt a sync in background
-        try {
-            sync()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        SyncManager.scheduleSync(context)
     }
 
     suspend fun updateItem(id: String, req: CreateReadingListItemRequest) {
@@ -342,7 +341,7 @@ class ReadingListRepository(
                         setBody(finalReq)
                     }
                 }
-                sync()
+                SyncManager.scheduleSync(context)
             } catch (e: Exception) {
                 e.printStackTrace()
                 // Fallback to update locally if offline

@@ -1,14 +1,12 @@
 package com.shishocompanion.ui
 
-import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.shishocompanion.data.CompanionPreferences
-import com.shishocompanion.data.Preferences
 import com.shishocompanion.data.ReadingListRepository
-import kotlinx.coroutines.flow.MutableStateFlow
+import com.shishocompanion.data.UserPreferencesRepository
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -16,76 +14,33 @@ import javax.inject.Inject
 @HiltViewModel
 class ThemeViewModel @Inject constructor(
     private val repository: ReadingListRepository,
-    private val sharedPrefs: SharedPreferences
+    private val userPrefs: UserPreferencesRepository
 ) : ViewModel() {
 
-    private fun getThemePreferenceWithMigration(prefs: SharedPreferences): String {
-        if (prefs.contains("DARK_MODE")) {
-            val oldDark = prefs.getBoolean("DARK_MODE", false)
-            val migratedTheme = if (oldDark) "OLED" else "LIGHT"
-            prefs.edit().remove("DARK_MODE").putString("THEME_PREFERENCE", migratedTheme).apply()
-            return migratedTheme
-        }
-        return prefs.getString("THEME_PREFERENCE", "SYSTEM") ?: "SYSTEM"
-    }
+    val themePreference: StateFlow<String> = userPrefs.themePreference
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "SYSTEM")
 
-    private fun getTimeFormatPreferenceWithMigration(prefs: SharedPreferences): String {
-        if (prefs.contains("USE_24_HOUR_TIME")) {
-            val old24Hour = prefs.getBoolean("USE_24_HOUR_TIME", false)
-            val migratedFormat = if (old24Hour) "24_HOUR" else "12_HOUR"
-            prefs.edit().remove("USE_24_HOUR_TIME").putString("TIME_FORMAT_PREFERENCE", migratedFormat).apply()
-            return migratedFormat
-        }
-        return prefs.getString("TIME_FORMAT_PREFERENCE", "SYSTEM") ?: "SYSTEM"
-    }
+    val dynamicColorPreference: StateFlow<Boolean> = userPrefs.dynamicColorEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    private fun getDateFormatPreferenceWithMigration(prefs: SharedPreferences): String {
-        return prefs.getString("DATE_FORMAT_PREFERENCE", "SYSTEM") ?: "SYSTEM"
-    }
+    val timeFormatPreference: StateFlow<String> = userPrefs.timeFormatPreference
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "SYSTEM")
 
-    private val _themePreference = MutableStateFlow(getThemePreferenceWithMigration(sharedPrefs))
-    val themePreference: StateFlow<String> = _themePreference.asStateFlow()
+    val dateFormatPreference: StateFlow<String> = userPrefs.dateFormatPreference
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "SYSTEM")
 
-    private val _timeFormatPreference = MutableStateFlow(getTimeFormatPreferenceWithMigration(sharedPrefs))
-    val timeFormatPreference: StateFlow<String> = _timeFormatPreference.asStateFlow()
+    val languagePreference: StateFlow<String> = userPrefs.languagePreference
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "SYSTEM")
 
-    private val _dateFormatPreference = MutableStateFlow(getDateFormatPreferenceWithMigration(sharedPrefs))
-    val dateFormatPreference: StateFlow<String> = _dateFormatPreference.asStateFlow()
+    val sendRemindersToDiscordPreference: StateFlow<Boolean> = userPrefs.sendRemindersToDiscord
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    private val _languagePreference = MutableStateFlow(sharedPrefs.getString("LANGUAGE_PREFERENCE", "SYSTEM") ?: "SYSTEM")
-    val languagePreference: StateFlow<String> = _languagePreference.asStateFlow()
-
-    private val _sendRemindersToDiscordPreference = MutableStateFlow(sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false))
-    val sendRemindersToDiscordPreference: StateFlow<Boolean> = _sendRemindersToDiscordPreference.asStateFlow()
-
-    private val _splitScreenPreference = MutableStateFlow(sharedPrefs.getBoolean("SPLIT_SCREEN_ENABLED", true))
-    val splitScreenPreference: StateFlow<Boolean> = _splitScreenPreference.asStateFlow()
-
-    private val preferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        when (key) {
-            "THEME_PREFERENCE", "DARK_MODE" -> _themePreference.value = getThemePreferenceWithMigration(sharedPrefs)
-            "TIME_FORMAT_PREFERENCE", "USE_24_HOUR_TIME" -> _timeFormatPreference.value = getTimeFormatPreferenceWithMigration(sharedPrefs)
-            "DATE_FORMAT_PREFERENCE" -> _dateFormatPreference.value = sharedPrefs.getString("DATE_FORMAT_PREFERENCE", "SYSTEM") ?: "SYSTEM"
-            "LANGUAGE_PREFERENCE" -> _languagePreference.value = sharedPrefs.getString("LANGUAGE_PREFERENCE", "SYSTEM") ?: "SYSTEM"
-            "SEND_REMINDERS_TO_DISCORD" -> _sendRemindersToDiscordPreference.value = sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false)
-            "SPLIT_SCREEN_ENABLED" -> _splitScreenPreference.value = sharedPrefs.getBoolean("SPLIT_SCREEN_ENABLED", true)
-        }
-    }
-
-    init {
-        sharedPrefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        sharedPrefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
-    }
+    val splitScreenPreference: StateFlow<Boolean> = userPrefs.splitScreenEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun setThemePreference(theme: String) {
-        sharedPrefs.edit().putString("THEME_PREFERENCE", theme).apply()
-        _themePreference.value = theme
-        
         viewModelScope.launch {
+            userPrefs.setThemePreference(theme)
             if (!repository.authToken.isNullOrEmpty()) {
                 val currentMeResult = repository.getMe()
                 if (currentMeResult.isSuccess) {
@@ -103,10 +58,8 @@ class ThemeViewModel @Inject constructor(
     }
 
     fun setTimeFormatPreference(format: String) {
-        sharedPrefs.edit().putString("TIME_FORMAT_PREFERENCE", format).apply()
-        _timeFormatPreference.value = format
-        
         viewModelScope.launch {
+            userPrefs.setTimeFormatPreference(format)
             if (!repository.authToken.isNullOrEmpty()) {
                 val currentMeResult = repository.getMe()
                 if (currentMeResult.isSuccess) {
@@ -124,10 +77,8 @@ class ThemeViewModel @Inject constructor(
     }
 
     fun setDateFormatPreference(format: String) {
-        sharedPrefs.edit().putString("DATE_FORMAT_PREFERENCE", format).apply()
-        _dateFormatPreference.value = format
-        
         viewModelScope.launch {
+            userPrefs.setDateFormatPreference(format)
             if (!repository.authToken.isNullOrEmpty()) {
                 val currentMeResult = repository.getMe()
                 if (currentMeResult.isSuccess) {
@@ -145,10 +96,8 @@ class ThemeViewModel @Inject constructor(
     }
 
     fun setLanguagePreference(lang: String) {
-        sharedPrefs.edit().putString("LANGUAGE_PREFERENCE", lang).apply()
-        _languagePreference.value = lang
-        
         viewModelScope.launch {
+            userPrefs.setLanguagePreference(lang)
             if (!repository.authToken.isNullOrEmpty()) {
                 val currentMeResult = repository.getMe()
                 if (currentMeResult.isSuccess) {
@@ -166,10 +115,8 @@ class ThemeViewModel @Inject constructor(
     }
 
     fun setSplitScreenPreference(enabled: Boolean) {
-        sharedPrefs.edit().putBoolean("SPLIT_SCREEN_ENABLED", enabled).apply()
-        _splitScreenPreference.value = enabled
-        
         viewModelScope.launch {
+            userPrefs.setSplitScreenEnabled(enabled)
             if (!repository.authToken.isNullOrEmpty()) {
                 val currentMeResult = repository.getMe()
                 if (currentMeResult.isSuccess) {
@@ -187,10 +134,8 @@ class ThemeViewModel @Inject constructor(
     }
 
     fun setSendRemindersToDiscordPreference(send: Boolean) {
-        sharedPrefs.edit().putBoolean("SEND_REMINDERS_TO_DISCORD", send).apply()
-        _sendRemindersToDiscordPreference.value = send
-        
         viewModelScope.launch {
+            userPrefs.setSendRemindersToDiscord(send)
             if (!repository.authToken.isNullOrEmpty()) {
                 val currentMeResult = repository.getMe()
                 if (currentMeResult.isSuccess) {
@@ -207,12 +152,13 @@ class ThemeViewModel @Inject constructor(
         }
     }
 
+    fun setDynamicColorPreference(enabled: Boolean) {
+        viewModelScope.launch {
+            userPrefs.setDynamicColorEnabled(enabled)
+        }
+    }
+
     fun reloadPreferences() {
-        _themePreference.value = getThemePreferenceWithMigration(sharedPrefs)
-        _timeFormatPreference.value = getTimeFormatPreferenceWithMigration(sharedPrefs)
-        _dateFormatPreference.value = sharedPrefs.getString("DATE_FORMAT_PREFERENCE", "SYSTEM") ?: "SYSTEM"
-        _sendRemindersToDiscordPreference.value = sharedPrefs.getBoolean("SEND_REMINDERS_TO_DISCORD", false)
-        _languagePreference.value = sharedPrefs.getString("LANGUAGE_PREFERENCE", "SYSTEM") ?: "SYSTEM"
-        _splitScreenPreference.value = sharedPrefs.getBoolean("SPLIT_SCREEN_ENABLED", true)
+        // No-op: DataStore flows are reactive and auto-update
     }
 }

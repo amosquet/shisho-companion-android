@@ -108,4 +108,12 @@
     <string name="logged_in_as">Logged in as: %1$s</string>
     <string name="guest">Guest</string>
     <string name="split_screen_large_devices">Split Screen</string>
+    <string name="search">Search</string>
+    <string name="search_notes">Search Notes</string>
+    <string name="search_notes_placeholder">Search notes…</string>
+    <string name="search_notes_prompt">Type to search notes…</string>
+    <string name="no_matching_notes">No matching notes found.</string>
+    <string name="clear_search">Clear search</string>
+    <string name="dynamic_color">Dynamic Color</string>
+    <string name="dynamic_color_description">Apply system wallpaper colors across the app</string>
 </resources>

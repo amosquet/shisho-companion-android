@@ -11,9 +11,12 @@ import java.util.UUID
 
 import com.shishocompanion.BuildConfig
 
+import android.content.Context
+
 class ReminderRepository(
     private val client: HttpClient,
     private val dao: ReminderDao,
+    private val context: Context,
     private val baseUrl: String = BuildConfig.POCKETBASE_URL
 ) {
     private val collectionName = "reminders"
@@ -120,11 +123,7 @@ class ReminderRepository(
             isPendingSync = true
         )
         dao.insertReminder(newEntity)
-        try {
-            sync()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        SyncManager.scheduleSync(context)
     }
 
     suspend fun updateReminder(id: String, req: CreateReminderRequest) {
@@ -136,11 +135,7 @@ class ReminderRepository(
                 isSent = req.isSent,
                 isPendingSync = true
             ))
-            try {
-                sync()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            SyncManager.scheduleSync(context)
         }
     }
 

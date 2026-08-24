@@ -2,26 +2,39 @@ package com.shishocompanion.ui
 
 import java.time.Instant
 import java.time.ZoneId
-import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+
+fun getDateFormatter(dateFormat: String = "SYSTEM"): DateTimeFormatter {
+    return when (dateFormat) {
+        "DD_MM_YYYY" -> DateTimeFormatter.ofPattern("dd-MM-yyyy")
+        "MM_DD_YYYY" -> DateTimeFormatter.ofPattern("MM-dd-yyyy")
+        "YYYY_MM_DD" -> DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        else -> DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+    }
+}
 
 fun formatReminderTime(rawTime: String, use24HourTime: Boolean = false, dateFormat: String = "SYSTEM"): String {
     if (rawTime.isBlank()) return rawTime
     
-    val timeFormat = if (use24HourTime) "HH:mm z" else "h:mm a z"
-    val datePattern = when (dateFormat) {
-        "DD_MM_YYYY" -> "dd-MM-yyyy"
-        "MM_DD_YYYY" -> "MM-dd-yyyy"
-        "YYYY_MM_DD" -> "yyyy-MM-dd"
-        else -> "MMM dd, yyyy"
-    }
-    val formatPattern = "$datePattern $timeFormat"
-    
+    val timePattern = if (use24HourTime) "HH:mm z" else "h:mm a z"
     return try {
         val instant = Instant.parse(rawTime)
         val zonedDateTime = instant.atZone(ZoneId.systemDefault())
-        val formatter = DateTimeFormatter.ofPattern(formatPattern)
-        zonedDateTime.format(formatter)
+        if (dateFormat == "SYSTEM") {
+            val datePart = zonedDateTime.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+            val timePart = zonedDateTime.format(DateTimeFormatter.ofPattern(timePattern))
+            "$datePart $timePart"
+        } else {
+            val datePattern = when (dateFormat) {
+                "DD_MM_YYYY" -> "dd-MM-yyyy"
+                "MM_DD_YYYY" -> "MM-dd-yyyy"
+                "YYYY_MM_DD" -> "yyyy-MM-dd"
+                else -> "MMM dd, yyyy"
+            }
+            val formatter = DateTimeFormatter.ofPattern("$datePattern $timePattern")
+            zonedDateTime.format(formatter)
+        }
     } catch (e: Exception) {
         rawTime
     }
@@ -30,18 +43,11 @@ fun formatReminderTime(rawTime: String, use24HourTime: Boolean = false, dateForm
 fun formatDateOnly(rawTime: String, dateFormat: String = "SYSTEM", useLocalTimezone: Boolean = true): String {
     if (rawTime.isBlank()) return rawTime
     
-    val formatPattern = when (dateFormat) {
-        "DD_MM_YYYY" -> "dd-MM-yyyy"
-        "MM_DD_YYYY" -> "MM-dd-yyyy"
-        "YYYY_MM_DD" -> "yyyy-MM-dd"
-        else -> "MMM dd, yyyy"
-    }
-    
     return try {
         val instant = Instant.parse(rawTime)
         val zone = if (useLocalTimezone) ZoneId.systemDefault() else ZoneId.of("UTC")
         val zonedDateTime = instant.atZone(zone)
-        val formatter = DateTimeFormatter.ofPattern(formatPattern)
+        val formatter = getDateFormatter(dateFormat)
         zonedDateTime.format(formatter)
     } catch (e: Exception) {
         rawTime

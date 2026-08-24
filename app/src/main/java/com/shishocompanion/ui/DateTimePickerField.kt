@@ -55,13 +55,7 @@ fun DateTimePickerField(
     )
 
     val dateFormatter = remember(dateFormatPreference) { 
-        val pattern = when (dateFormatPreference) {
-            "DD_MM_YYYY" -> "dd-MM-yyyy"
-            "MM_DD_YYYY" -> "MM-dd-yyyy"
-            "YYYY_MM_DD" -> "yyyy-MM-dd"
-            else -> "MMM dd, yyyy"
-        }
-        DateTimeFormatter.ofPattern(pattern)
+        getDateFormatter(dateFormatPreference)
     }
     val timeFormatter = remember(use24HourTime) { 
         DateTimeFormatter.ofPattern(if (use24HourTime) "HH:mm" else "h:mm a")

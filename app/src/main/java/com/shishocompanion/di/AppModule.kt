@@ -61,19 +61,19 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideReadingListRepository(httpClient: HttpClient, database: AppDatabase): ReadingListRepository {
-        return ReadingListRepository(httpClient, database.readingListDao())
+    fun provideReadingListRepository(httpClient: HttpClient, database: AppDatabase, @ApplicationContext context: Context): ReadingListRepository {
+        return ReadingListRepository(httpClient, database.readingListDao(), context)
     }
 
     @Provides
     @Singleton
-    fun provideNoteRepository(httpClient: HttpClient, database: AppDatabase): NoteRepository {
-        return NoteRepository(httpClient, database.noteDao())
+    fun provideNoteRepository(httpClient: HttpClient, database: AppDatabase, @ApplicationContext context: Context): NoteRepository {
+        return NoteRepository(httpClient, database.noteDao(), context)
     }
 
     @Provides
     @Singleton
-    fun provideReminderRepository(httpClient: HttpClient, database: AppDatabase): ReminderRepository {
-        return ReminderRepository(httpClient, database.reminderDao())
+    fun provideReminderRepository(httpClient: HttpClient, database: AppDatabase, @ApplicationContext context: Context): ReminderRepository {
+        return ReminderRepository(httpClient, database.reminderDao(), context)
     }
 }

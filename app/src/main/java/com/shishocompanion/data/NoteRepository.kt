@@ -20,9 +20,12 @@ import kotlinx.serialization.encodeToString
 import java.io.File
 import java.util.UUID
 
+import android.content.Context
+
 class NoteRepository(
     private val client: HttpClient,
     private val dao: NoteDao,
+    private val context: Context,
     private val baseUrl: String = BuildConfig.POCKETBASE_URL
 ) {
     private val collectionName = "notes"
@@ -167,11 +170,7 @@ class NoteRepository(
             archived = req.archived
         )
         dao.insertNote(newEntity)
-        try {
-            sync()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        SyncManager.scheduleSync(context)
     }
 
     suspend fun updateNote(id: String, req: CreateNoteRequest) {
@@ -214,7 +213,7 @@ class NoteRepository(
                         }
                     }))
                 }
-                sync()
+                SyncManager.scheduleSync(context)
             } catch (e: Exception) {
                 e.printStackTrace()
                 val existing = dao.getById(id)

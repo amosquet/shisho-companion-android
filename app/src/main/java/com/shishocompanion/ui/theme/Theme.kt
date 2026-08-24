@@ -60,7 +60,7 @@ private val LightColorScheme = lightColorScheme(
 fun ShishoCompanionTheme(
     themePreference: String = "LIGHT",
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false, // Disabled to keep the minimalist theme
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val isSystemDark = isSystemInDarkTheme()

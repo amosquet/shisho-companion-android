@@ -101,4 +101,12 @@
     <string name="guest">Invité</string>
     <string name="add_note_shortcut_short">Nouvelle note</string>
     <string name="add_note_shortcut_long">Créer une nouvelle note</string>
+    <string name="search">Rechercher</string>
+    <string name="search_notes">Rechercher des notes</string>
+    <string name="search_notes_placeholder">Rechercher des notes…</string>
+    <string name="search_notes_prompt">Tapez pour rechercher des notes…</string>
+    <string name="no_matching_notes">Aucune note correspondante trouvée.</string>
+    <string name="clear_search">Effacer la recherche</string>
+    <string name="dynamic_color">Couleur dynamique</string>
+    <string name="dynamic_color_description">Appliquer les couleurs du fond d\'écran à l\'application</string>
 </resources>

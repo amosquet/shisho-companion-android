@@ -1,25 +1,23 @@
 package com.shishocompanion.ui.components
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FormatBold
+import androidx.compose.material.icons.filled.FormatItalic
+import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.FormatUnderlined
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
+import com.mohamedrejeb.richeditor.model.rememberRichTextState
+import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
+import com.mohamedrejeb.richeditor.ui.material3.RichTextEditorDefaults
 
 @Composable
 fun NoteEditor(
@@ -27,124 +25,72 @@ fun NoteEditor(
     onTextChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val lines = text.split("\n")
-    val checkboxRegex = Regex("""^-\s*\[([ xX]?)\]\s*(.*)""")
+    val richTextState = rememberRichTextState()
     
-    val focusRequesters = remember { mutableMapOf<Int, FocusRequester>() }
-    var lineToFocus by remember { mutableStateOf<Int?>(null) }
-    
-    LaunchedEffect(lineToFocus, lines.size) {
-        lineToFocus?.let { index ->
-            focusRequesters[index]?.requestFocus()
-            lineToFocus = null
+    // We want to track if this is the first load
+    var isInitialized by remember { mutableStateOf(false) }
+
+    LaunchedEffect(text) {
+        if (!isInitialized) {
+            richTextState.setMarkdown(text)
+            isInitialized = true
+        }
+    }
+
+    // We can observe changes by comparing the resulting markdown.
+    // annotatedString triggers on any text or styling change.
+    LaunchedEffect(richTextState.annotatedString) {
+        if (isInitialized) {
+            val newMarkdown = richTextState.toMarkdown()
+            // Avoid calling onTextChange if it's strictly equal to what was passed in,
+            // to prevent unnecessary loop cycles.
+            if (newMarkdown != text) {
+                onTextChange(newMarkdown)
+            }
         }
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        lines.forEachIndexed { index, line ->
-            val matchResult = checkboxRegex.find(line)
-            val fr = focusRequesters.getOrPut(index) { FocusRequester() }
-            
-            if (matchResult != null) {
-                val isChecked = matchResult.groupValues[1].equals("x", ignoreCase = true)
-                val content = matchResult.groupValues[2]
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                ) {
-                    Checkbox(
-                        checked = isChecked,
-                        onCheckedChange = { checked ->
-                            val marker = if (checked) "- [x] " else "- [ ] "
-                            val newLines = lines.toMutableList()
-                            newLines[index] = marker + content
-                            onTextChange(newLines.joinToString("\n"))
-                        }
-                    )
-                    
-                    BasicTextField(
-                        value = content,
-                        onValueChange = { newContent ->
-                            val newLines = lines.toMutableList()
-                            if (newContent.contains("\n")) {
-                                val parts = newContent.split("\n", limit = 2)
-                                val marker = if (isChecked) "- [x] " else "- [ ] "
-                                newLines[index] = marker + parts[0]
-                                newLines.add(index + 1, "- [ ] " + parts[1])
-                                lineToFocus = index + 1
-                            } else {
-                                val marker = if (isChecked) "- [x] " else "- [ ] "
-                                newLines[index] = marker + newContent
-                            }
-                            onTextChange(newLines.joinToString("\n"))
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 8.dp)
-                            .focusRequester(fr)
-                            .onKeyEvent { keyEvent ->
-                                if (keyEvent.key == Key.Backspace && keyEvent.type == KeyEventType.KeyUp && content.isEmpty()) {
-                                    if (index > 0) {
-                                        val newLines = lines.toMutableList()
-                                        newLines.removeAt(index)
-                                        lineToFocus = index - 1
-                                        onTextChange(newLines.joinToString("\n"))
-                                        return@onKeyEvent true
-                                    } else {
-                                        val newLines = lines.toMutableList()
-                                        newLines[index] = ""
-                                        onTextChange(newLines.joinToString("\n"))
-                                        return@onKeyEvent true
-                                    }
-                                }
-                                false
-                            },
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onBackground
-                        ),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
-                    )
-                }
-            } else {
-                BasicTextField(
-                    value = line,
-                    onValueChange = { newContent ->
-                        val newLines = lines.toMutableList()
-                        if (newContent.contains("\n")) {
-                            val parts = newContent.split("\n", limit = 2)
-                            newLines[index] = parts[0]
-                            newLines.add(index + 1, parts[1])
-                            lineToFocus = index + 1
-                        } else {
-                            newLines[index] = newContent
-                        }
-                        onTextChange(newLines.joinToString("\n"))
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                        .focusRequester(fr)
-                        .onKeyEvent { keyEvent ->
-                            if (keyEvent.key == Key.Backspace && keyEvent.type == KeyEventType.KeyUp && line.isEmpty()) {
-                                if (index > 0) {
-                                    val newLines = lines.toMutableList()
-                                    newLines.removeAt(index)
-                                    lineToFocus = index - 1
-                                    onTextChange(newLines.joinToString("\n"))
-                                    return@onKeyEvent true
-                                }
-                            }
-                            false
-                        },
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        color = MaterialTheme.colorScheme.onBackground
-                    ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
-                )
+        // Formatting Toolbar
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            IconButton(
+                onClick = { richTextState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold)) }
+            ) {
+                Icon(Icons.Default.FormatBold, contentDescription = "Bold")
+            }
+            IconButton(
+                onClick = { richTextState.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic)) }
+            ) {
+                Icon(Icons.Default.FormatItalic, contentDescription = "Italic")
+            }
+            IconButton(
+                onClick = { richTextState.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline)) }
+            ) {
+                Icon(Icons.Default.FormatUnderlined, contentDescription = "Underline")
+            }
+            IconButton(
+                onClick = { richTextState.toggleUnorderedList() }
+            ) {
+                Icon(Icons.Default.FormatListBulleted, contentDescription = "Bullet List")
             }
         }
+        
+        RichTextEditor(
+            state = richTextState,
+            modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                color = MaterialTheme.colorScheme.onBackground
+            ),
+            colors = RichTextEditorDefaults.richTextEditorColors(
+                containerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            )
+        )
     }
 }

@@ -1,12 +1,14 @@
 package com.shishocompanion.ui
 
-import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shishocompanion.data.ReadingListRepository
+import com.shishocompanion.data.UserPreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -14,28 +16,27 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val repository: ReadingListRepository,
-    private val sharedPrefs: SharedPreferences
+    private val userPrefs: UserPreferencesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DiscordLinkUiState>(DiscordLinkUiState.Idle)
     val uiState: StateFlow<DiscordLinkUiState> = _uiState.asStateFlow()
 
-    private val _linkedDiscordId = MutableStateFlow<String>(sharedPrefs.getString("DISCORD_ID", "") ?: "")
-    val linkedDiscordId: StateFlow<String> = _linkedDiscordId.asStateFlow()
+    val linkedDiscordId: StateFlow<String> = userPrefs.discordDisplayId
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    private val _googleBooksApiKey = MutableStateFlow<String>(sharedPrefs.getString("GOOGLE_BOOKS_API_KEY", "") ?: "")
-    val googleBooksApiKey: StateFlow<String> = _googleBooksApiKey.asStateFlow()
+    val googleBooksApiKey: StateFlow<String> = userPrefs.googleBooksApiKey
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
 
-    private val _swipeActionPreference = MutableStateFlow<String>(sharedPrefs.getString("SWIPE_ACTION", "DELETE") ?: "DELETE")
-    val swipeActionPreference: StateFlow<String> = _swipeActionPreference.asStateFlow()
+    val swipeActionPreference: StateFlow<String> = userPrefs.swipeAction
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "DELETE")
 
     init {
         viewModelScope.launch {
             val me = repository.getMe()
             if (me.isSuccess) {
                 val fetchedDiscordId = me.getOrNull()?.discordId ?: ""
-                _linkedDiscordId.value = fetchedDiscordId
-                sharedPrefs.edit().putString("DISCORD_ID", fetchedDiscordId).apply()
+                userPrefs.setDiscordDisplayId(fetchedDiscordId)
             }
         }
     }
@@ -57,8 +58,7 @@ class SettingsViewModel @Inject constructor(
             _uiState.value = DiscordLinkUiState.PinRequested(discordId, isVerifying = true)
             val result = repository.linkDiscord(discordId, pin)
             if (result.isSuccess) {
-                _linkedDiscordId.value = discordId
-                sharedPrefs.edit().putString("DISCORD_ID", discordId).apply()
+                userPrefs.setDiscordDisplayId(discordId)
                 _uiState.value = DiscordLinkUiState.Success
             } else {
                 _uiState.value = DiscordLinkUiState.PinRequested(
@@ -75,8 +75,7 @@ class SettingsViewModel @Inject constructor(
             _uiState.value = DiscordLinkUiState.Loading
             val result = repository.unlinkDiscord()
             if (result.isSuccess) {
-                _linkedDiscordId.value = ""
-                sharedPrefs.edit().putString("DISCORD_ID", "").apply()
+                userPrefs.setDiscordDisplayId("")
                 _uiState.value = DiscordLinkUiState.Idle
             } else {
                 _uiState.value = DiscordLinkUiState.Error(result.exceptionOrNull()?.message ?: "Failed to unlink Discord")
@@ -89,13 +88,15 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun updateGoogleBooksApiKey(key: String) {
-        _googleBooksApiKey.value = key
-        sharedPrefs.edit().putString("GOOGLE_BOOKS_API_KEY", key).apply()
+        viewModelScope.launch {
+            userPrefs.setGoogleBooksApiKey(key)
+        }
     }
 
     fun updateSwipeActionPreference(action: String) {
-        _swipeActionPreference.value = action
-        sharedPrefs.edit().putString("SWIPE_ACTION", action).apply()
+        viewModelScope.launch {
+            userPrefs.setSwipeAction(action)
+        }
     }
 }
 
