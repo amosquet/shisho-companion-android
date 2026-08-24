@@ -12,15 +12,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
-import androidx.compose.material3.adaptive.layout.AnimatedPane
-import androidx.compose.material3.adaptive.layout.ListDetailPaneScaffoldRole
-import androidx.compose.material3.adaptive.layout.PaneAdaptedValue
-import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
-import androidx.compose.material3.adaptive.navigation.NavigableListDetailPaneScaffold
-import androidx.compose.material3.adaptive.navigation.rememberListDetailPaneScaffoldNavigator
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import com.shishocompanion.ui.components.AdaptiveListDetailPane
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
@@ -40,19 +35,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -404,159 +394,107 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 composable<ReadingList> {
-                                    val coroutineScope = rememberCoroutineScope()
                                     val splitScreenPreference by themeViewModel.splitScreenPreference.collectAsState()
-                                    val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator<String>(
-                                        scaffoldDirective = calculatePaneScaffoldDirective(
-                                            currentWindowAdaptiveInfo()
-                                        ).copy(maxHorizontalPartitions = if (splitScreenPreference) 2 else 1)
-                                    )
-
-                                    NavigableListDetailPaneScaffold(
-                                        navigator = scaffoldNavigator,
-                                        listPane = {
-                                            AnimatedPane {
-                                                ReadingListScreen(
-                                                    uiState = listUiState,
-                                                    hasUnreadAnnouncements = hasUnreadAnnouncements,
-                                                    onSyncClick = { listViewModel.syncReadingList() },
-                                                    onItemClick = { id ->
-                                                        coroutineScope.launch {
-                                                            scaffoldNavigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
-                                                        }
+                                    AdaptiveListDetailPane<String>(
+                                        splitScreen = splitScreenPreference,
+                                        listPane = { onItemClick ->
+                                            ReadingListScreen(
+                                                uiState = listUiState,
+                                                hasUnreadAnnouncements = hasUnreadAnnouncements,
+                                                onSyncClick = { listViewModel.syncReadingList() },
+                                                onItemClick = onItemClick,
+                                                onSettingsClick = { navController.navigate(Settings) }
+                                            )
+                                        },
+                                        detailPane = { selectedId, isDualPane, onNavigateBack ->
+                                            val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == selectedId }
+                                                ?: listViewModel.getItemById(selectedId)
+                                            if (item != null) {
+                                                BookDetailScreen(
+                                                    item = item,
+                                                    onEditClick = { navController.navigate(Edit(selectedId)) },
+                                                    onDeleteClick = {
+                                                        listViewModel.deleteItem(selectedId)
+                                                        onNavigateBack()
                                                     },
-                                                    onSettingsClick = { navController.navigate(Settings) }
+                                                    onNavigateBack = onNavigateBack,
+                                                    isSplitScreen = isDualPane,
+                                                    dateFormatPreference = dateFormatPreference
                                                 )
+                                            } else {
+                                                Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                    Text(stringResource(R.string.list_label))
+                                                }
                                             }
                                         },
-                                        detailPane = {
-                                            AnimatedPane {
-                                                val selectedId = scaffoldNavigator.currentDestination?.contentKey
-                                                if (selectedId != null) {
-                                                    val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == selectedId }
-                                                        ?: listViewModel.getItemById(selectedId)
-                                                    if (item != null) {
-                                                        val isDualPane = scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.List] == PaneAdaptedValue.Expanded &&
-                                                                scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
-                                                        BookDetailScreen(
-                                                            item = item,
-                                                            onEditClick = { navController.navigate(Edit(selectedId)) },
-                                                            onDeleteClick = {
-                                                                listViewModel.deleteItem(selectedId)
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            onNavigateBack = {
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            isSplitScreen = isDualPane,
-                                                            dateFormatPreference = dateFormatPreference
-                                                        )
-                                                    } else {
-                                                        Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                            Text(stringResource(R.string.list_label))
-                                                        }
-                                                    }
-                                                } else {
-                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                        Text(stringResource(R.string.list_label))
-                                                    }
-                                                }
+                                        placeholderPane = {
+                                            Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                Text(stringResource(R.string.list_label))
                                             }
                                         }
                                     )
                                 }
                                 composable<Notes> {
-                                    val coroutineScope = rememberCoroutineScope()
                                     val splitScreenPreference by themeViewModel.splitScreenPreference.collectAsState()
-                                    val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator<String>(
-                                        scaffoldDirective = calculatePaneScaffoldDirective(
-                                            currentWindowAdaptiveInfo()
-                                        ).copy(maxHorizontalPartitions = if (splitScreenPreference) 2 else 1)
-                                    )
                                     val selectedNoteIds by notesViewModel.selectedNoteIds.collectAsState()
-
-                                    NavigableListDetailPaneScaffold(
-                                        navigator = scaffoldNavigator,
-                                        listPane = {
-                                            AnimatedPane {
-                                                NotesListScreen(
-                                                    uiState = notesUiState,
-                                                    hasUnreadAnnouncements = hasUnreadAnnouncements,
-                                                    selectedNoteIds = selectedNoteIds,
-                                                    onSyncClick = { notesViewModel.syncNotes() },
-                                                    onItemClick = { id ->
-                                                        coroutineScope.launch {
-                                                            scaffoldNavigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
-                                                        }
+                                    AdaptiveListDetailPane<String>(
+                                        splitScreen = splitScreenPreference,
+                                        listPane = { onItemClick ->
+                                            NotesListScreen(
+                                                uiState = notesUiState,
+                                                hasUnreadAnnouncements = hasUnreadAnnouncements,
+                                                selectedNoteIds = selectedNoteIds,
+                                                onSyncClick = { notesViewModel.syncNotes() },
+                                                onItemClick = onItemClick,
+                                                onSettingsClick = { navController.navigate(Settings) },
+                                                onArchiveClick = { navController.navigate(ArchivedNotes) },
+                                                onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
+                                                onClearSelection = { notesViewModel.clearNoteSelection() },
+                                                onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
+                                                onArchiveSelected = { notesViewModel.archiveSelectedNotes() },
+                                                onDeleteNote = { notesViewModel.deleteNote(it) },
+                                                onArchiveNote = { notesViewModel.archiveNote(it) },
+                                                dateFormatPreference = dateFormatPreference
+                                            )
+                                        },
+                                        detailPane = { selectedId, isDualPane, onNavigateBack ->
+                                            val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == selectedId }
+                                                ?: notesViewModel.getNoteById(selectedId)
+                                            if (item != null) {
+                                                NoteDetailScreen(
+                                                    item = item,
+                                                    onEditClick = { navController.navigate(EditNote(selectedId)) },
+                                                    onDeleteClick = {
+                                                        notesViewModel.deleteNote(selectedId)
+                                                        onNavigateBack()
                                                     },
-                                                    onSettingsClick = { navController.navigate(Settings) },
-                                                    onArchiveClick = { navController.navigate(ArchivedNotes) },
-                                                    onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
-                                                    onClearSelection = { notesViewModel.clearNoteSelection() },
-                                                    onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
-                                                    onArchiveSelected = { notesViewModel.archiveSelectedNotes() },
-                                                    onDeleteNote = { notesViewModel.deleteNote(it) },
-                                                    onArchiveNote = { notesViewModel.archiveNote(it) },
+                                                    onArchiveClick = {
+                                                        notesViewModel.archiveNote(selectedId)
+                                                        onNavigateBack()
+                                                    },
+                                                    onTextUpdate = { newText ->
+                                                        val req = com.shishocompanion.data.CreateNoteRequest(
+                                                            owner = item.owner,
+                                                            title = item.title,
+                                                            text = newText,
+                                                            attachment = item.attachment,
+                                                            archived = item.archived
+                                                        )
+                                                        notesViewModel.updateNote(selectedId, req)
+                                                    },
+                                                    onNavigateBack = onNavigateBack,
+                                                    isSplitScreen = isDualPane,
                                                     dateFormatPreference = dateFormatPreference
                                                 )
+                                            } else {
+                                                Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                    Text(stringResource(R.string.notes))
+                                                }
                                             }
                                         },
-                                        detailPane = {
-                                            AnimatedPane {
-                                                val selectedId = scaffoldNavigator.currentDestination?.contentKey
-                                                if (selectedId != null) {
-                                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == selectedId }
-                                                        ?: notesViewModel.getNoteById(selectedId)
-                                                    if (item != null) {
-                                                        val isDualPane = scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.List] == PaneAdaptedValue.Expanded &&
-                                                                scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
-                                                        NoteDetailScreen(
-                                                            item = item,
-                                                            onEditClick = { navController.navigate(EditNote(selectedId)) },
-                                                            onDeleteClick = {
-                                                                notesViewModel.deleteNote(selectedId)
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            onArchiveClick = {
-                                                                notesViewModel.archiveNote(selectedId)
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            onTextUpdate = { newText ->
-                                                                val req = com.shishocompanion.data.CreateNoteRequest(
-                                                                    owner = item.owner,
-                                                                    title = item.title,
-                                                                    text = newText,
-                                                                    attachment = item.attachment,
-                                                                    archived = item.archived
-                                                                )
-                                                                notesViewModel.updateNote(selectedId, req)
-                                                            },
-                                                            onNavigateBack = {
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            isSplitScreen = isDualPane,
-                                                            dateFormatPreference = dateFormatPreference
-                                                        )
-                                                    } else {
-                                                        Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                            Text(stringResource(R.string.notes))
-                                                        }
-                                                    }
-                                                } else {
-                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                        Text(stringResource(R.string.notes))
-                                                    }
-                                                }
+                                        placeholderPane = {
+                                            Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                Text(stringResource(R.string.notes))
                                             }
                                         }
                                     )
@@ -571,23 +509,6 @@ class MainActivity : ComponentActivity() {
                                             listViewModel.searchGoogleBooks(title, author, isbn, onResult)
                                         }
                                     )
-                                }
-                                composable<Detail> { backStackEntry ->
-                                    val route = backStackEntry.toRoute<Detail>()
-                                    val id = route.id
-                                    val item = (listUiState as? ReadingListUiState.Success)?.items?.find { it.id == id } ?: listViewModel.getItemById(id)
-                                    if (item != null) {
-                                        BookDetailScreen(
-                                            item = item,
-                                            onEditClick = { navController.navigate(Edit(id)) },
-                                            onDeleteClick = {
-                                                listViewModel.deleteItem(id)
-                                                navController.popBackStack()
-                                            },
-                                            onNavigateBack = { navController.popBackStack() },
-                                            dateFormatPreference = dateFormatPreference
-                                        )
-                                    }
                                 }
                                 composable<Edit> { backStackEntry ->
                                     val route = backStackEntry.toRoute<Edit>()
@@ -613,37 +534,6 @@ class MainActivity : ComponentActivity() {
                                         onSave = { req -> notesViewModel.addNote(req) },
                                         onNavigateBack = { navController.popBackStack() }
                                     )
-                                }
-                                composable<NoteDetail> { backStackEntry ->
-                                    val route = backStackEntry.toRoute<NoteDetail>()
-                                    val id = route.id
-                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == id } ?: notesViewModel.getNoteById(id)
-                                    if (item != null) {
-                                        NoteDetailScreen(
-                                            item = item,
-                                            onEditClick = { navController.navigate(EditNote(id)) },
-                                            onDeleteClick = {
-                                                notesViewModel.deleteNote(id)
-                                                navController.popBackStack()
-                                            },
-                                            onArchiveClick = {
-                                                notesViewModel.archiveNote(id)
-                                                navController.popBackStack()
-                                            },
-                                            onTextUpdate = { newText ->
-                                                val req = com.shishocompanion.data.CreateNoteRequest(
-                                                    owner = item.owner,
-                                                    title = item.title,
-                                                    text = newText,
-                                                    attachment = item.attachment,
-                                                    archived = item.archived
-                                                )
-                                                notesViewModel.updateNote(id, req)
-                                            },
-                                            onNavigateBack = { navController.popBackStack() },
-                                            dateFormatPreference = dateFormatPreference
-                                        )
-                                    }
                                 }
                                 composable<EditNote> { backStackEntry ->
                                     val route = backStackEntry.toRoute<EditNote>()
@@ -709,237 +599,160 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 composable<Reminders> {
-                                    val coroutineScope = rememberCoroutineScope()
                                     val splitScreenPreference by themeViewModel.splitScreenPreference.collectAsState()
-                                    val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator<String>(
-                                        scaffoldDirective = calculatePaneScaffoldDirective(
-                                            currentWindowAdaptiveInfo()
-                                        ).copy(maxHorizontalPartitions = if (splitScreenPreference) 2 else 1)
-                                    )
                                     val selectedReminderIds by remindersViewModel.selectedReminderIds.collectAsState()
-
-                                    NavigableListDetailPaneScaffold(
-                                        navigator = scaffoldNavigator,
-                                        listPane = {
-                                            AnimatedPane {
-                                                RemindersListScreen(
-                                                    uiState = remindersUiState,
-                                                    hasUnreadAnnouncements = hasUnreadAnnouncements,
-                                                    selectedReminderIds = selectedReminderIds,
+                                    AdaptiveListDetailPane<String>(
+                                        splitScreen = splitScreenPreference,
+                                        listPane = { onItemClick ->
+                                            RemindersListScreen(
+                                                uiState = remindersUiState,
+                                                hasUnreadAnnouncements = hasUnreadAnnouncements,
+                                                selectedReminderIds = selectedReminderIds,
+                                                use24HourTime = use24HourTime,
+                                                dateFormatPreference = dateFormatPreference,
+                                                onSyncClick = { remindersViewModel.syncReminders() },
+                                                onItemClick = onItemClick,
+                                                onSettingsClick = { navController.navigate(Settings) },
+                                                onArchiveClick = { navController.navigate(ArchivedReminders) },
+                                                onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
+                                                onClearSelection = { remindersViewModel.clearReminderSelection() },
+                                                onDeleteSelected = { remindersViewModel.deleteSelectedReminders() },
+                                                onDeleteReminder = { remindersViewModel.deleteReminder(it) },
+                                                onArchiveReminder = { remindersViewModel.archiveReminder(it) }
+                                            )
+                                        },
+                                        detailPane = { selectedId, isDualPane, onNavigateBack ->
+                                            val item = remindersUiState.reminders.find { it.id == selectedId }
+                                                ?: remindersViewModel.getReminderById(selectedId)
+                                            if (item != null) {
+                                                ReminderDetailScreen(
+                                                    item = item,
                                                     use24HourTime = use24HourTime,
                                                     dateFormatPreference = dateFormatPreference,
-                                                    onSyncClick = { remindersViewModel.syncReminders() },
-                                                    onItemClick = { id ->
-                                                        coroutineScope.launch {
-                                                            scaffoldNavigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
-                                                        }
+                                                    onEditClick = { navController.navigate(EditReminder(selectedId)) },
+                                                    onDeleteClick = {
+                                                        remindersViewModel.deleteReminder(selectedId)
+                                                        onNavigateBack()
                                                     },
-                                                    onSettingsClick = { navController.navigate(Settings) },
-                                                    onArchiveClick = { navController.navigate(ArchivedReminders) },
-                                                    onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
-                                                    onClearSelection = { remindersViewModel.clearReminderSelection() },
-                                                    onDeleteSelected = { remindersViewModel.deleteSelectedReminders() },
-                                                    onDeleteReminder = { remindersViewModel.deleteReminder(it) },
-                                                    onArchiveReminder = { remindersViewModel.archiveReminder(it) }
+                                                    onNavigateBack = onNavigateBack,
+                                                    isSplitScreen = isDualPane
                                                 )
+                                            } else {
+                                                Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                    Text(stringResource(R.string.reminders))
+                                                }
                                             }
                                         },
-                                        detailPane = {
-                                            AnimatedPane {
-                                                val selectedId = scaffoldNavigator.currentDestination?.contentKey
-                                                if (selectedId != null) {
-                                                    val item = remindersUiState.reminders.find { it.id == selectedId }
-                                                        ?: remindersViewModel.getReminderById(selectedId)
-                                                    if (item != null) {
-                                                        val isDualPane = scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.List] == PaneAdaptedValue.Expanded &&
-                                                                scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
-                                                        ReminderDetailScreen(
-                                                            item = item,
-                                                            use24HourTime = use24HourTime,
-                                                            dateFormatPreference = dateFormatPreference,
-                                                            onEditClick = { navController.navigate(EditReminder(selectedId)) },
-                                                            onDeleteClick = {
-                                                                remindersViewModel.deleteReminder(selectedId)
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            onNavigateBack = {
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            isSplitScreen = isDualPane
-                                                        )
-                                                    } else {
-                                                        Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                            Text(stringResource(R.string.reminders))
-                                                        }
-                                                    }
-                                                } else {
-                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                        Text(stringResource(R.string.reminders))
-                                                    }
-                                                }
+                                        placeholderPane = {
+                                            Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                Text(stringResource(R.string.reminders))
                                             }
                                         }
                                     )
                                 }
                                 composable<ArchivedReminders> {
-                                    val coroutineScope = rememberCoroutineScope()
                                     val splitScreenPreference by themeViewModel.splitScreenPreference.collectAsState()
-                                    val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator<String>(
-                                        scaffoldDirective = calculatePaneScaffoldDirective(
-                                            currentWindowAdaptiveInfo()
-                                        ).copy(maxHorizontalPartitions = if (splitScreenPreference) 2 else 1)
-                                    )
                                     val selectedReminderIds by remindersViewModel.selectedReminderIds.collectAsState()
-
-                                    NavigableListDetailPaneScaffold(
-                                        navigator = scaffoldNavigator,
-                                        listPane = {
-                                            AnimatedPane {
-                                                ArchivedRemindersScreen(
-                                                    uiState = remindersUiState,
-                                                    selectedReminderIds = selectedReminderIds,
+                                    AdaptiveListDetailPane<String>(
+                                        splitScreen = splitScreenPreference,
+                                        listPane = { onItemClick ->
+                                            ArchivedRemindersScreen(
+                                                uiState = remindersUiState,
+                                                selectedReminderIds = selectedReminderIds,
+                                                use24HourTime = use24HourTime,
+                                                dateFormatPreference = dateFormatPreference,
+                                                onNavigateBack = { navController.popBackStack() },
+                                                onItemClick = onItemClick,
+                                                onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
+                                                onClearSelection = { remindersViewModel.clearReminderSelection() },
+                                                onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
+                                            )
+                                        },
+                                        detailPane = { selectedId, isDualPane, onNavigateBack ->
+                                            val item = remindersUiState.reminders.find { it.id == selectedId }
+                                                ?: remindersViewModel.getReminderById(selectedId)
+                                            if (item != null) {
+                                                ReminderDetailScreen(
+                                                    item = item,
                                                     use24HourTime = use24HourTime,
                                                     dateFormatPreference = dateFormatPreference,
-                                                    onNavigateBack = { navController.popBackStack() },
-                                                    onItemClick = { id ->
-                                                        coroutineScope.launch {
-                                                            scaffoldNavigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
-                                                        }
+                                                    onEditClick = { navController.navigate(EditReminder(selectedId)) },
+                                                    onDeleteClick = {
+                                                        remindersViewModel.deleteReminder(selectedId)
+                                                        onNavigateBack()
                                                     },
-                                                    onToggleSelection = { id -> remindersViewModel.toggleReminderSelection(id) },
-                                                    onClearSelection = { remindersViewModel.clearReminderSelection() },
-                                                    onDeleteSelected = { remindersViewModel.deleteSelectedReminders() }
+                                                    onNavigateBack = onNavigateBack,
+                                                    isSplitScreen = isDualPane
                                                 )
+                                            } else {
+                                                Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                    Text(stringResource(R.string.reminders))
+                                                }
                                             }
                                         },
-                                        detailPane = {
-                                            AnimatedPane {
-                                                val selectedId = scaffoldNavigator.currentDestination?.contentKey
-                                                if (selectedId != null) {
-                                                    val item = remindersUiState.reminders.find { it.id == selectedId }
-                                                        ?: remindersViewModel.getReminderById(selectedId)
-                                                    if (item != null) {
-                                                        val isDualPane = scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.List] == PaneAdaptedValue.Expanded &&
-                                                                scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
-                                                        ReminderDetailScreen(
-                                                            item = item,
-                                                            use24HourTime = use24HourTime,
-                                                            dateFormatPreference = dateFormatPreference,
-                                                            onEditClick = { navController.navigate(EditReminder(selectedId)) },
-                                                            onDeleteClick = {
-                                                                remindersViewModel.deleteReminder(selectedId)
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            onNavigateBack = {
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            isSplitScreen = isDualPane
-                                                        )
-                                                    } else {
-                                                        Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                            Text(stringResource(R.string.reminders))
-                                                        }
-                                                    }
-                                                } else {
-                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                        Text(stringResource(R.string.reminders))
-                                                    }
-                                                }
+                                        placeholderPane = {
+                                            Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                Text(stringResource(R.string.reminders))
                                             }
                                         }
                                     )
                                 }
                                 composable<ArchivedNotes> {
-                                    val coroutineScope = rememberCoroutineScope()
                                     val splitScreenPreference by themeViewModel.splitScreenPreference.collectAsState()
-                                    val scaffoldNavigator = rememberListDetailPaneScaffoldNavigator<String>(
-                                        scaffoldDirective = calculatePaneScaffoldDirective(
-                                            currentWindowAdaptiveInfo()
-                                        ).copy(maxHorizontalPartitions = if (splitScreenPreference) 2 else 1)
-                                    )
                                     val selectedNoteIds by notesViewModel.selectedNoteIds.collectAsState()
-
-                                    NavigableListDetailPaneScaffold(
-                                        navigator = scaffoldNavigator,
-                                        listPane = {
-                                            AnimatedPane {
-                                                ArchivedNotesScreen(
-                                                    uiState = notesUiState,
-                                                    selectedNoteIds = selectedNoteIds,
-                                                    onNavigateBack = { navController.popBackStack() },
-                                                    onItemClick = { id ->
-                                                        coroutineScope.launch {
-                                                            scaffoldNavigator.navigateTo(ListDetailPaneScaffoldRole.Detail, id)
-                                                        }
+                                    AdaptiveListDetailPane<String>(
+                                        splitScreen = splitScreenPreference,
+                                        listPane = { onItemClick ->
+                                            ArchivedNotesScreen(
+                                                uiState = notesUiState,
+                                                selectedNoteIds = selectedNoteIds,
+                                                onNavigateBack = { navController.popBackStack() },
+                                                onItemClick = onItemClick,
+                                                onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
+                                                onClearSelection = { notesViewModel.clearNoteSelection() },
+                                                onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
+                                                onUnarchiveSelected = { notesViewModel.unarchiveSelectedNotes() },
+                                                dateFormatPreference = dateFormatPreference
+                                            )
+                                        },
+                                        detailPane = { selectedId, isDualPane, onNavigateBack ->
+                                            val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == selectedId }
+                                                ?: notesViewModel.getNoteById(selectedId)
+                                            if (item != null) {
+                                                NoteDetailScreen(
+                                                    item = item,
+                                                    onEditClick = { navController.navigate(EditNote(selectedId)) },
+                                                    onDeleteClick = {
+                                                        notesViewModel.deleteNote(selectedId)
+                                                        onNavigateBack()
                                                     },
-                                                    onToggleSelection = { id -> notesViewModel.toggleNoteSelection(id) },
-                                                    onClearSelection = { notesViewModel.clearNoteSelection() },
-                                                    onDeleteSelected = { notesViewModel.deleteSelectedNotes() },
-                                                    onUnarchiveSelected = { notesViewModel.unarchiveSelectedNotes() },
+                                                    onArchiveClick = {
+                                                        notesViewModel.archiveNote(selectedId)
+                                                        onNavigateBack()
+                                                    },
+                                                    onTextUpdate = { newText ->
+                                                        val req = com.shishocompanion.data.CreateNoteRequest(
+                                                            owner = item.owner,
+                                                            title = item.title,
+                                                            text = newText,
+                                                            attachment = item.attachment,
+                                                            archived = item.archived
+                                                        )
+                                                        notesViewModel.updateNote(selectedId, req)
+                                                    },
+                                                    onNavigateBack = onNavigateBack,
+                                                    isSplitScreen = isDualPane,
                                                     dateFormatPreference = dateFormatPreference
                                                 )
+                                            } else {
+                                                Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                    Text(stringResource(R.string.notes))
+                                                }
                                             }
                                         },
-                                        detailPane = {
-                                            AnimatedPane {
-                                                val selectedId = scaffoldNavigator.currentDestination?.contentKey
-                                                if (selectedId != null) {
-                                                    val item = (notesUiState as? NotesUiState.Success)?.items?.find { it.id == selectedId }
-                                                        ?: notesViewModel.getNoteById(selectedId)
-                                                    if (item != null) {
-                                                        val isDualPane = scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.List] == PaneAdaptedValue.Expanded &&
-                                                                scaffoldNavigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
-                                                        NoteDetailScreen(
-                                                            item = item,
-                                                            onEditClick = { navController.navigate(EditNote(selectedId)) },
-                                                            onDeleteClick = {
-                                                                notesViewModel.deleteNote(selectedId)
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            onArchiveClick = {
-                                                                notesViewModel.archiveNote(selectedId)
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            onTextUpdate = { newText ->
-                                                                val req = com.shishocompanion.data.CreateNoteRequest(
-                                                                    owner = item.owner,
-                                                                    title = item.title,
-                                                                    text = newText,
-                                                                    attachment = item.attachment,
-                                                                    archived = item.archived
-                                                                )
-                                                                notesViewModel.updateNote(selectedId, req)
-                                                            },
-                                                            onNavigateBack = {
-                                                                coroutineScope.launch {
-                                                                    scaffoldNavigator.navigateBack()
-                                                                }
-                                                            },
-                                                            isSplitScreen = isDualPane,
-                                                            dateFormatPreference = dateFormatPreference
-                                                        )
-                                                    } else {
-                                                        Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                            Text(stringResource(R.string.notes))
-                                                        }
-                                                    }
-                                                } else {
-                                                    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-                                                        Text(stringResource(R.string.notes))
-                                                    }
-                                                }
+                                        placeholderPane = {
+                                            Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+                                                Text(stringResource(R.string.notes))
                                             }
                                         }
                                     )
@@ -953,24 +766,6 @@ class MainActivity : ComponentActivity() {
                                         onSave = { req -> remindersViewModel.addReminder(req) },
                                         onNavigateBack = { navController.popBackStack() }
                                     )
-                                }
-                                composable<ReminderDetail> { backStackEntry ->
-                                    val route = backStackEntry.toRoute<ReminderDetail>()
-                                    val id = route.id
-                                    val item = remindersUiState.reminders.find { it.id == id } ?: remindersViewModel.getReminderById(id)
-                                    if (item != null) {
-                                        ReminderDetailScreen(
-                                            item = item,
-                                            use24HourTime = use24HourTime,
-                                            dateFormatPreference = dateFormatPreference,
-                                            onEditClick = { navController.navigate(EditReminder(id)) },
-                                            onDeleteClick = {
-                                                remindersViewModel.deleteReminder(id)
-                                                navController.popBackStack()
-                                            },
-                                            onNavigateBack = { navController.popBackStack() }
-                                        )
-                                    }
                                 }
                                 composable<EditReminder> { backStackEntry ->
                                     val route = backStackEntry.toRoute<EditReminder>()

@@ -23,14 +23,7 @@ object AddNote
 @Serializable
 object AddReminder
 
-@Serializable
-data class Detail(val id: String)
 
-@Serializable
-data class NoteDetail(val id: String)
-
-@Serializable
-data class ReminderDetail(val id: String)
 
 @Serializable
 data class Edit(val id: String)

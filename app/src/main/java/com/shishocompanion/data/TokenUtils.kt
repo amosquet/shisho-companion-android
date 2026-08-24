@@ -1,26 +1,28 @@
 package com.shishocompanion.data
 
-import android.util.Base64
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.longOrNull
+import com.auth0.jwt.JWT
+import com.auth0.jwt.exceptions.JWTDecodeException
+import java.util.Date
 
 object TokenUtils {
-    private val json = Json { ignoreUnknownKeys = true }
-
-    fun isTokenExpired(token: String?): Boolean {
-        if (token.isNullOrEmpty()) return true
+    /**
+     * Checks if the given JWT token is expired or invalid.
+     * Returns true if the token is null, blank, malformed, missing an expiration claim,
+     * or past its expiration timestamp (accounting for leeway).
+     */
+    fun isTokenExpired(token: String?, leewaySeconds: Long = 10): Boolean {
+        if (token.isNullOrBlank()) return true
         return try {
-            val parts = token.split(".")
-            if (parts.size != 3) return true
-            val payload = String(Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING), Charsets.UTF_8)
-            val jsonElement = json.parseToJsonElement(payload)
-            val exp = jsonElement.jsonObject["exp"]?.jsonPrimitive?.longOrNull ?: return true
-            val currentTime = System.currentTimeMillis() / 1000
-            currentTime >= exp
+            val jwt = JWT.decode(token)
+            val expiresAt = jwt.expiresAt ?: return true
+            val nowWithLeeway = Date(System.currentTimeMillis() + leewaySeconds * 1000)
+            expiresAt.before(nowWithLeeway)
+        } catch (e: JWTDecodeException) {
+            true
         } catch (e: Exception) {
             true
         }
     }
 }
+
+
