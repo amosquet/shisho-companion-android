@@ -14,7 +14,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import java.security.SecureRandom
 import android.util.Base64
 
-@Database(entities = [ReadingListEntity::class, NoteEntity::class, ReminderEntity::class], version = 9, exportSchema = false)
+@Database(entities = [ReadingListEntity::class, NoteEntity::class, ReminderEntity::class], version = 10, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun readingListDao(): ReadingListDao
     abstract fun noteDao(): NoteDao
@@ -33,6 +33,12 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_8_9 = object : Migration(8, 9) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE reading_list ADD COLUMN completed TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE notes RENAME COLUMN userId TO owner")
             }
         }
 
@@ -97,7 +103,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "reading_list_database"
                 )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .fallbackToDestructiveMigration(true)
                 .build()
                 INSTANCE = instance

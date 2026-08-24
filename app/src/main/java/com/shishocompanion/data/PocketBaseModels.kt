@@ -83,7 +83,7 @@ data class Record(
 @Serializable
 data class NoteItem(
     val id: String = "",
-    @SerialName("user_id") val userId: String = "",
+    @SerialName("owner") val owner: String = "",
     val title: String = "",
     val text: String = "",
     val attachment: List<String> = emptyList(), // spelling matches db
@@ -94,7 +94,7 @@ data class NoteItem(
 
 @Serializable
 data class CreateNoteRequest(
-    @SerialName("user_id") val userId: String = "",
+    @SerialName("owner") val owner: String = "",
     val title: String,
     val text: String,
     val attachment: List<String> = emptyList(),

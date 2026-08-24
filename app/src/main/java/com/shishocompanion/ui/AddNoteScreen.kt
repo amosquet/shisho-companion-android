@@ -25,7 +25,7 @@ import com.shishocompanion.data.CreateNoteRequest
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddNoteScreen(
-    userId: String,
+    owner: String,
     onSave: (CreateNoteRequest) -> Unit,
     onNavigateBack: () -> Unit,
     isSplitScreen: Boolean = false
@@ -56,7 +56,7 @@ fun AddNoteScreen(
                     IconButton(
                         onClick = {
                             val req = CreateNoteRequest(
-                                userId = userId,
+                                owner = owner,
                                 title = title,
                                 text = text,
                                 attachment = attachmentUris,

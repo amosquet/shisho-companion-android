@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class NoteEntity(
     @PrimaryKey
     val id: String, // PocketBase ID, or local generated UUID if new
-    val userId: String,
+    val owner: String,
     val title: String,
     val text: String,
     val attachment: String, // Note: mapped from "attachment" remote field

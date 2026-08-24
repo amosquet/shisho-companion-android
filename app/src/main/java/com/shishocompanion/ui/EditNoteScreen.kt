@@ -58,7 +58,7 @@ fun EditNoteScreen(
                     IconButton(
                         onClick = {
                             val req = CreateNoteRequest(
-                                userId = item.userId,
+                                owner = item.owner,
                                 title = title,
                                 text = text,
                                 attachment = attachmentUris,

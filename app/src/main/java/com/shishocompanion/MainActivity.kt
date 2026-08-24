@@ -531,7 +531,7 @@ class MainActivity : ComponentActivity() {
                                                             },
                                                             onTextUpdate = { newText ->
                                                                 val req = com.shishocompanion.data.CreateNoteRequest(
-                                                                    userId = item.userId,
+                                                                    owner = item.owner,
                                                                     title = item.title,
                                                                     text = newText,
                                                                     attachment = item.attachment,
@@ -606,7 +606,7 @@ class MainActivity : ComponentActivity() {
                                 composable<AddNote> {
                                     val userId = sharedPrefs.getString("USER_ID", "") ?: ""
                                     AddNoteScreen(
-                                        userId = userId,
+                                        owner = userId,
                                         onSave = { req -> notesViewModel.addNote(req) },
                                         onNavigateBack = { navController.popBackStack() }
                                     )
@@ -629,7 +629,7 @@ class MainActivity : ComponentActivity() {
                                             },
                                             onTextUpdate = { newText ->
                                                 val req = com.shishocompanion.data.CreateNoteRequest(
-                                                    userId = item.userId,
+                                                    owner = item.owner,
                                                     title = item.title,
                                                     text = newText,
                                                     attachment = item.attachment,
@@ -911,7 +911,7 @@ class MainActivity : ComponentActivity() {
                                                             },
                                                             onTextUpdate = { newText ->
                                                                 val req = com.shishocompanion.data.CreateNoteRequest(
-                                                                    userId = item.userId,
+                                                                    owner = item.owner,
                                                                     title = item.title,
                                                                     text = newText,
                                                                     attachment = item.attachment,

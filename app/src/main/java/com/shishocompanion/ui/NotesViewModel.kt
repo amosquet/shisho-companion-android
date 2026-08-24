@@ -97,7 +97,7 @@ class NotesViewModel @Inject constructor(
                 val note = currentState.items.find { it.id == id }
                 if (note != null) {
                     updateNote(id, CreateNoteRequest(
-                        userId = note.userId,
+                        owner = note.owner,
                         title = note.title,
                         text = note.text,
                         attachment = note.attachment,
@@ -116,7 +116,7 @@ class NotesViewModel @Inject constructor(
                     val note = currentState.items.find { it.id == id }
                     if (note != null && !note.archived) {
                         updateNote(id, CreateNoteRequest(
-                            userId = note.userId,
+                            owner = note.owner,
                             title = note.title,
                             text = note.text,
                             attachment = note.attachment,
@@ -137,7 +137,7 @@ class NotesViewModel @Inject constructor(
                     val note = currentState.items.find { it.id == id }
                     if (note != null && note.archived) {
                         updateNote(id, CreateNoteRequest(
-                            userId = note.userId,
+                            owner = note.owner,
                             title = note.title,
                             text = note.text,
                             attachment = note.attachment,

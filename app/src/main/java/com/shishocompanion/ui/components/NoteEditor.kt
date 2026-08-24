@@ -19,6 +19,7 @@ import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditorDefaults
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditor(
     text: String,

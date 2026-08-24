@@ -59,7 +59,7 @@ class NoteRepository(
                 
                 NoteItem(
                     id = it.id,
-                    userId = it.userId,
+                    owner = it.owner,
                     title = it.title,
                     text = it.text,
                     attachment = generatedAttachmentUrls,
@@ -94,7 +94,7 @@ class NoteRepository(
                     val response = client.post("$baseUrl/api/collections/$collectionName/records") {
                         authToken?.let { header("Authorization", "Bearer $it") }
                         setBody(MultiPartFormDataContent(formData {
-                            append("user_id", pending.userId)
+                            append("owner", pending.owner)
                             append("title", pending.title)
                             append("text", pending.text)
                             append("archived", pending.archived.toString())
@@ -140,7 +140,7 @@ class NoteRepository(
             val entities = response.items.map {
                 NoteEntity(
                     id = it.id,
-                    userId = it.userId,
+                    owner = it.owner,
                     title = it.title,
                     text = it.text,
                     attachment = kotlinx.serialization.json.Json.encodeToString(it.attachment),
@@ -160,7 +160,7 @@ class NoteRepository(
         val fakeId = "local_" + UUID.randomUUID().toString().replace("-", "")
         val newEntity = NoteEntity(
             id = fakeId,
-            userId = req.userId,
+            owner = req.owner,
             title = req.title,
             text = req.text,
             attachment = kotlinx.serialization.json.Json.encodeToString(req.attachment),
@@ -189,7 +189,7 @@ class NoteRepository(
                 client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
                     authToken?.let { header("Authorization", "Bearer $it") }
                     setBody(MultiPartFormDataContent(formData {
-                        append("user_id", req.userId)
+                        append("owner", req.owner)
                         append("title", req.title)
                         append("text", req.text)
                         append("archived", req.archived.toString())
