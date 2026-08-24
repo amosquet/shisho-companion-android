@@ -71,7 +71,7 @@ fun EditReminderScreen(
                 onClick = {
                     onSave(
                         CreateReminderRequest(
-                            userId = item.userId,
+                            owner = item.owner,
                             reminderText = reminderText,
                             remindAt = remindAt,
                             isSent = isSent

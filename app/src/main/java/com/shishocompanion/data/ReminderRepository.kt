@@ -28,7 +28,7 @@ class ReminderRepository(
             entities.map {
                 ReminderItem(
                     id = it.id,
-                    userId = it.userId,
+                    owner = it.owner,
                     reminderText = it.reminderText,
                     remindAt = it.remindAt,
                     isSent = it.isSent,
@@ -47,7 +47,7 @@ class ReminderRepository(
             for (pending in pendingItems) {
                 try {
                     val req = CreateReminderRequest(
-                        userId = pending.userId,
+                        owner = pending.owner,
                         reminderText = pending.reminderText,
                         remindAt = pending.remindAt,
                         isSent = pending.isSent
@@ -86,7 +86,7 @@ class ReminderRepository(
                 val response: PocketBaseListResponse<ReminderItem> = 
                     client.get("$baseUrl/api/collections/$collectionName/records") {
                         authToken?.let { header("Authorization", "Bearer $it") }
-                        parameter("filter", "user_id = '$uid'")
+                        parameter("filter", "owner = '$uid'")
                         parameter("perPage", 500)
                     }.body()
 
@@ -94,7 +94,7 @@ class ReminderRepository(
                 val entities = response.items.map {
                     ReminderEntity(
                         id = it.id,
-                        userId = it.userId,
+                        owner = it.owner,
                         reminderText = it.reminderText,
                         remindAt = it.remindAt,
                         isSent = it.isSent,
@@ -114,7 +114,7 @@ class ReminderRepository(
         val fakeId = "local_" + UUID.randomUUID().toString().replace("-", "")
         val newEntity = ReminderEntity(
             id = fakeId,
-            userId = req.userId,
+            owner = req.owner,
             reminderText = req.reminderText,
             remindAt = req.remindAt,
             isSent = req.isSent,
@@ -158,7 +158,7 @@ class ReminderRepository(
         val entity = dao.getReminderById(id) ?: return null
         return ReminderItem(
             id = entity.id,
-            userId = entity.userId,
+            owner = entity.owner,
             reminderText = entity.reminderText,
             remindAt = entity.remindAt,
             isSent = entity.isSent,

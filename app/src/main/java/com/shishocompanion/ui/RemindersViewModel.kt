@@ -140,7 +140,7 @@ class RemindersViewModel @Inject constructor(
         val reminder = getReminderById(id)
         if (reminder != null) {
             updateReminder(id, CreateReminderRequest(
-                userId = reminder.userId,
+                owner = reminder.owner,
                 reminderText = reminder.reminderText,
                 remindAt = reminder.remindAt,
                 isSent = !reminder.isSent

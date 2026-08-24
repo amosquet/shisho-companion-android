@@ -14,7 +14,7 @@ import com.shishocompanion.data.CreateReminderRequest
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddReminderScreen(
-    userId: String,
+    owner: String,
     use24HourTime: Boolean,
     onSave: (CreateReminderRequest) -> Unit,
     onNavigateBack: () -> Unit,
@@ -64,7 +64,7 @@ fun AddReminderScreen(
                 onClick = {
                     onSave(
                         CreateReminderRequest(
-                            userId = userId,
+                            owner = owner,
                             reminderText = reminderText,
                             remindAt = remindAt,
                             isSent = false

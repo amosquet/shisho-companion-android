@@ -15,7 +15,7 @@ data class PocketBaseListResponse<T>(
 @Serializable
 data class ReadingListItem(
     val id: String = "",
-    @SerialName("user_id") val userId: String = "",
+    @SerialName("owner") val owner: String = "",
     val title: String = "",
     val url: String = "",
     val description: String = "",
@@ -36,7 +36,7 @@ data class ReadingListItem(
 
 @Serializable
 data class CreateReadingListItemRequest(
-    @SerialName("user_id") val userId: String = "",
+    @SerialName("owner") val owner: String = "",
     val title: String,
     val url: String,
     val description: String = "",
@@ -104,7 +104,7 @@ data class CreateNoteRequest(
 @Serializable
 data class ReminderItem(
     val id: String = "",
-    @SerialName("user_id") val userId: String = "",
+    @SerialName("owner") val owner: String = "",
     @SerialName("reminder_text") val reminderText: String = "",
     @SerialName("remind_at") val remindAt: String = "",
     @SerialName("is_sent") val isSent: Boolean = false,
@@ -114,7 +114,7 @@ data class ReminderItem(
 
 @Serializable
 data class CreateReminderRequest(
-    @SerialName("user_id") val userId: String = "",
+    @SerialName("owner") val owner: String = "",
     @SerialName("reminder_text") val reminderText: String,
     @SerialName("remind_at") val remindAt: String,
     @SerialName("is_sent") val isSent: Boolean

@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 data class ReadingListEntity(
     @PrimaryKey
     val id: String, // PocketBase ID, or local generated UUID if new
-    val userId: String,
+    val owner: String,
     val title: String,
     val url: String,
     val description: String,

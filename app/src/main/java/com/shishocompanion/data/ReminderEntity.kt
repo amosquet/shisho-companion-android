@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "reminders")
 data class ReminderEntity(
     @PrimaryKey val id: String,
-    val userId: String,
+    val owner: String,
     val reminderText: String,
     val remindAt: String,
     val isSent: Boolean,

@@ -944,7 +944,7 @@ class MainActivity : ComponentActivity() {
                                 composable<AddReminder> {
                                     val userId = sharedPrefs.getString("USER_ID", "") ?: ""
                                     AddReminderScreen(
-                                        userId = userId,
+                                        owner = userId,
                                         use24HourTime = use24HourTime,
                                         dateFormatPreference = dateFormatPreference,
                                         onSave = { req -> remindersViewModel.addReminder(req) },

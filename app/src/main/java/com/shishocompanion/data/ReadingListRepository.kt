@@ -33,7 +33,7 @@ class ReadingListRepository(
         return MultiPartFormDataContent(
             formData {
                 append("title", req.title)
-                append("user_id", req.userId)
+                append("owner", req.owner)
                 append("url", req.url)
                 append("description", req.description)
                 append("author", req.author)
@@ -172,7 +172,7 @@ class ReadingListRepository(
                 
                 ReadingListItem(
                     id = it.id,
-                    userId = it.userId,
+                    owner = it.owner,
                     title = it.title,
                     url = it.url,
                     description = it.description,
@@ -207,7 +207,7 @@ class ReadingListRepository(
             val pendingItems = dao.getPendingSyncItems()
             for (pending in pendingItems) {
                 val createReq = CreateReadingListItemRequest(
-                    userId = pending.userId,
+                    owner = pending.owner,
                     title = pending.title,
                     url = pending.url,
                     description = pending.description,
@@ -246,7 +246,7 @@ class ReadingListRepository(
             val entities = response.items.map {
                 ReadingListEntity(
                     id = it.id,
-                    userId = it.userId,
+                    owner = it.owner,
                     title = it.title,
                     url = it.url,
                     description = it.description,
@@ -273,7 +273,7 @@ class ReadingListRepository(
     suspend fun addItem(item: CreateReadingListItemRequest) {
         if (item.coverBytes != null) {
             try {
-                val finalReq = item.copy(userId = this.userId ?: "")
+                val finalReq = item.copy(owner = this.userId ?: "")
                 client.post("$baseUrl/api/collections/$collectionName/records") {
                     authToken?.let { header("Authorization", "Bearer $it") }
                     setBody(buildMultipartData(finalReq))
@@ -288,7 +288,7 @@ class ReadingListRepository(
         val fakeId = "local_" + UUID.randomUUID().toString().replace("-", "")
         val newEntity = ReadingListEntity(
             id = fakeId,
-            userId = this.userId ?: "",
+            owner = this.userId ?: "",
             title = item.title,
             url = item.url,
             description = item.description,
@@ -327,7 +327,7 @@ class ReadingListRepository(
                 ))
             }
         } else {
-            val finalReq = req.copy(userId = this.userId ?: "")
+            val finalReq = req.copy(owner = this.userId ?: "")
             try {
                 if (finalReq.coverBytes != null) {
                     client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
