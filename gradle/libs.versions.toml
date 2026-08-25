@@ -2,7 +2,7 @@
 work = "2.9.0"
 hiltWork = "1.2.0"
 
-agp = "9.3.1"
+agp = "9.3.2"
 coreKtx = "1.15.0"
 
 lifecycleRuntimeKtx = "2.6.1"

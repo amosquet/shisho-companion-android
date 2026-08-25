@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.FormatItalic
-import androidx.compose.material.icons.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
 import androidx.compose.material.icons.filled.FormatUnderlined
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -77,7 +77,7 @@ fun NoteEditor(
             IconButton(
                 onClick = { richTextState.toggleUnorderedList() }
             ) {
-                Icon(Icons.Default.FormatListBulleted, contentDescription = "Bullet List")
+                Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = "Bullet List")
             }
         }
         
