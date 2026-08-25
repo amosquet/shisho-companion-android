@@ -4,7 +4,7 @@
     <string name="add_book">Ajouter un livre</string>
     <string name="add_note">Ajouter une note</string>
     <string name="add_reminder">Ajouter un rappel</string>
-    <string name="list_label">Liste</string>
+    <string name="list_label">Livres</string>
     <string name="notes">Notes</string>
     <string name="reminders">Rappels</string>
     <string name="title">Titre</string>

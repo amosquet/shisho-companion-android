@@ -4,7 +4,7 @@
     <string name="add_book">Add Book</string>
     <string name="add_note">Add Note</string>
     <string name="add_reminder">Add Reminder</string>
-    <string name="list_label">List</string>
+    <string name="list_label">Books</string>
     <string name="notes">Notes</string>
     <string name="reminders">Reminders</string>
     <string name="title">Title</string>

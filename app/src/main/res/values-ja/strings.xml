@@ -4,7 +4,7 @@
     <string name="add_book">本を追加</string>
     <string name="add_note">メモを追加</string>
     <string name="add_reminder">リマインダーを追加</string>
-    <string name="list_label">リスト</string>
+    <string name="list_label">本</string>
     <string name="notes">メモ</string>
     <string name="reminders">リマインダー</string>
     <string name="title">タイトル</string>
