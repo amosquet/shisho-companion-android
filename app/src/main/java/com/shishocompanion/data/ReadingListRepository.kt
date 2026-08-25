@@ -163,7 +163,7 @@ class ReadingListRepository(
 
     fun getReadingList(): Flow<List<ReadingListItem>> {
         return dao.getAllItems().map { entities ->
-            entities.map {
+            val items = entities.map {
                 val generatedImageUrl = if (it.cover.isNotEmpty() && it.id.isNotEmpty() && !it.id.startsWith("local_")) {
                     "$baseUrl/api/files/$collectionName/${it.id}/${it.cover}"
                 } else {
@@ -188,14 +188,8 @@ class ReadingListRepository(
                     updated = it.updated,
                     completed = it.completed
                 )
-            }.sortedByDescending { item ->
-                when {
-                    item.endDate.isNotEmpty() -> item.endDate
-                    item.startDate.isNotEmpty() -> item.startDate
-                    item.completed.isNotEmpty() && item.publishDate.isNotEmpty() -> item.publishDate
-                    else -> item.created
-                }
             }
+            sortReadingList(items)
         }
     }
 
@@ -454,6 +448,40 @@ class ReadingListRepository(
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
+        }
+    }
+
+    companion object {
+        fun sortReadingList(items: List<ReadingListItem>): List<ReadingListItem> {
+            return items.sortedWith { a, b ->
+                // 1. Planned books always appear at the bottom of the list
+                val aIsPlanned = a.status.equals("planned", ignoreCase = true)
+                val bIsPlanned = b.status.equals("planned", ignoreCase = true)
+
+                if (aIsPlanned && !bIsPlanned) return@sortedWith 1
+                if (!aIsPlanned && bIsPlanned) return@sortedWith -1
+
+                fun getSortKey(item: ReadingListItem): String = when {
+                    item.endDate.isNotBlank() -> item.endDate
+                    item.completed.isNotBlank() && item.completed != "true" -> item.completed
+                    item.startDate.isNotBlank() -> item.startDate
+                    else -> item.created
+                }
+
+                val keyA = getSortKey(a)
+                val keyB = getSortKey(b)
+                val dateComparison = keyB.compareTo(keyA)
+                if (dateComparison != 0) return@sortedWith dateComparison
+
+                // Secondary tie-breaker: publishDate descending (newest published first)
+                val pubComparison = b.publishDate.compareTo(a.publishDate)
+                if (pubComparison != 0) return@sortedWith pubComparison
+
+                // Tertiary tie-breaker: title ascending
+                a.title.compareTo(b.title, ignoreCase = true).let {
+                    if (it != 0) it else a.title.compareTo(b.title)
+                }
+            }
         }
     }
 }

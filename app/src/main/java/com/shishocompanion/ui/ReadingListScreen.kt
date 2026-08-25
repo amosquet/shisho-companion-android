@@ -8,14 +8,18 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -31,11 +35,59 @@ fun ReadingListScreen(
     onItemClick: (String) -> Unit,
     onSettingsClick: () -> Unit
 ) {
+    var selectedFilter by rememberSaveable { mutableStateOf("all") }
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    val filterOptions = listOf(
+        "all" to stringResource(R.string.filter_all),
+        "planned" to stringResource(R.string.status_planned),
+        "reading" to stringResource(R.string.status_reading),
+        "read" to stringResource(R.string.status_read),
+        "dropped" to stringResource(R.string.status_dropped)
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.reading_list)) },
                 actions = {
+                    Box {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.FilterList,
+                                contentDescription = stringResource(R.string.filter_by_status),
+                                tint = if (selectedFilter != "all") MaterialTheme.colorScheme.primary else LocalContentColor.current
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            filterOptions.forEach { (key, label) ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = label,
+                                            fontWeight = if (selectedFilter == key) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    trailingIcon = if (selectedFilter == key) {
+                                        {
+                                            Icon(
+                                                Icons.Filled.Check,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    } else null,
+                                    onClick = {
+                                        selectedFilter = key
+                                        menuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
                     IconButton(onClick = onSyncClick) {
                         Icon(Icons.Filled.Refresh, contentDescription = stringResource(R.string.sync))
                     }
@@ -79,9 +131,20 @@ fun ReadingListScreen(
                         )
                     }
                     is ReadingListUiState.Success -> {
-                        if (uiState.items.isEmpty()) {
+                        val filteredItems = remember(uiState.items, selectedFilter) {
+                            if (selectedFilter.equals("all", ignoreCase = true)) {
+                                uiState.items
+                            } else {
+                                uiState.items.filter { it.status.equals(selectedFilter, ignoreCase = true) }
+                            }
+                        }
+                        if (filteredItems.isEmpty()) {
                             Text(
-                                text = "Your reading list is empty.",
+                                text = if (uiState.items.isEmpty()) {
+                                    stringResource(R.string.empty_reading_list)
+                                } else {
+                                    stringResource(R.string.no_books_found_filter)
+                                },
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.align(Alignment.Center)
@@ -92,7 +155,7 @@ fun ReadingListScreen(
                                 contentPadding = PaddingValues(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                items(uiState.items, key = { it.id }) { item ->
+                                items(filteredItems, key = { it.id }) { item ->
                                     ReadingListItemCard(item = item, onClick = { onItemClick(item.id) })
                                 }
                             }
@@ -166,10 +229,17 @@ fun ReadingListItemCard(item: ReadingListItem, onClick: () -> Unit) {
                 }
                 if (item.status.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
+                    val statusColor = when(item.status.lowercase()) {
+                        "planned" -> MaterialTheme.colorScheme.secondary
+                        "reading" -> MaterialTheme.colorScheme.primary
+                        "read" -> MaterialTheme.colorScheme.tertiary
+                        "dropped" -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    }
                     Text(
                         text = item.status.uppercase(),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error
+                        color = statusColor
                     )
                 }
             }

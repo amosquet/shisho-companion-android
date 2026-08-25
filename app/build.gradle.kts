@@ -95,7 +95,6 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
     implementation(libs.sqlcipher)
-    testImplementation(libs.junit)
     implementation(libs.richeditor.compose)
     implementation(libs.auth0.jwt)
     implementation(libs.play.services.code.scanner)

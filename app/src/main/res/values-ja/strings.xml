@@ -115,4 +115,12 @@
     <string name="scan_barcode">バーコードをスキャン</string>
     <string name="barcode_scan_failed">バーコードのスキャンに失敗しました</string>
     <string name="no_api_key_set">Google Books APIキーが設定されていません。設定でAPIキーを設定してください。</string>
+    <string name="filter_all">すべて</string>
+    <string name="status_planned">読みたい</string>
+    <string name="status_reading">読書中</string>
+    <string name="status_read">読了</string>
+    <string name="status_dropped">中断</string>
+    <string name="filter_by_status">ステータス</string>
+    <string name="no_books_found_filter">このステータスの本は見つかりませんでした。</string>
+    <string name="empty_reading_list">読書リストは空です。</string>
 </resources>

@@ -122,4 +122,12 @@
     <string name="scan_barcode">Scan Barcode</string>
     <string name="barcode_scan_failed">Failed to scan barcode</string>
     <string name="no_api_key_set">No Google Books API key configured. Please set one in Settings.</string>
+    <string name="filter_all">All</string>
+    <string name="status_planned">Planned</string>
+    <string name="status_reading">Reading</string>
+    <string name="status_read">Read</string>
+    <string name="status_dropped">Dropped</string>
+    <string name="filter_by_status">Status</string>
+    <string name="no_books_found_filter">No books found for this status.</string>
+    <string name="empty_reading_list">Your reading list is empty.</string>
 </resources>

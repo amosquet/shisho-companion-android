@@ -115,4 +115,12 @@
     <string name="scan_barcode">Scanner le code-barres</string>
     <string name="barcode_scan_failed">Échec de la lecture du code-barres</string>
     <string name="no_api_key_set">Aucune clé d\'API Google Books configurée. Veuillez en définir une dans les Paramètres.</string>
+    <string name="filter_all">Tous</string>
+    <string name="status_planned">Prévu</string>
+    <string name="status_reading">En cours</string>
+    <string name="status_read">Lu</string>
+    <string name="status_dropped">Abandonné</string>
+    <string name="filter_by_status">Statut</string>
+    <string name="no_books_found_filter">Aucun livre trouvé pour ce statut.</string>
+    <string name="empty_reading_list">Votre liste de lecture est vide.</string>
 </resources>
