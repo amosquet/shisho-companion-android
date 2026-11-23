@@ -110,6 +110,18 @@ class RemindersViewModel @Inject constructor(
         }
     }
 
+    fun restoreReminder(item: ReminderItem) {
+        addReminder(
+            CreateReminderRequest(
+                owner = item.owner,
+                reminderText = item.reminderText,
+                remindAt = item.remindAt,
+                isSent = item.isSent,
+                book = item.book
+            )
+        )
+    }
+
     fun toggleReminderSelection(id: String) {
         _selectedReminderIds.value = _selectedReminderIds.value.toMutableSet().apply {
             if (contains(id)) remove(id) else add(id)
@@ -143,7 +155,8 @@ class RemindersViewModel @Inject constructor(
                 owner = reminder.owner,
                 reminderText = reminder.reminderText,
                 remindAt = reminder.remindAt,
-                isSent = !reminder.isSent
+                isSent = !reminder.isSent,
+                book = reminder.book
             ))
         }
     }

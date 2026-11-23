@@ -58,6 +58,10 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -98,4 +102,7 @@ dependencies {
     implementation(libs.richeditor.compose)
     implementation(libs.auth0.jwt)
     implementation(libs.play.services.code.scanner)
+    testImplementation(libs.junit)
+    testImplementation(libs.ktor.client.mock)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

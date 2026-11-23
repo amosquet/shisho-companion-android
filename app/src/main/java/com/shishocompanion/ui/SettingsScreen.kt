@@ -283,19 +283,21 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Swipe to Dismiss Action",
+                            text = stringResource(R.string.swipe_to_dismiss_action),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         SettingsDropdown(
                             selectedText = when (swipeActionPreference) {
-                                "ARCHIVE" -> "Archive"
-                                "DELETE" -> "Delete"
-                                else -> "Delete"
+                                "ARCHIVE" -> stringResource(R.string.archive)
+                                "NONE" -> stringResource(R.string.disabled)
+                                "DELETE" -> stringResource(R.string.delete)
+                                else -> stringResource(R.string.delete)
                             },
                             options = listOf(
-                                "DELETE" to "Delete",
-                                "ARCHIVE" to "Archive"
+                                "DELETE" to stringResource(R.string.delete),
+                                "ARCHIVE" to stringResource(R.string.archive),
+                                "NONE" to stringResource(R.string.disabled)
                             ),
                             onOptionSelected = onSwipeActionPreferenceChanged
                         )
@@ -308,7 +310,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Integrations",
+                text = stringResource(R.string.integrations),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
@@ -319,7 +321,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Google Books API Key",
+                        text = stringResource(R.string.google_books_api_key),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -329,7 +331,7 @@ fun SettingsScreen(
                         onValueChange = onGoogleBooksApiKeyChanged,
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text("Enter your API key") }
+                        placeholder = { Text(stringResource(R.string.enter_api_key)) }
                     )
                 }
             }

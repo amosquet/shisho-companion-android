@@ -30,14 +30,7 @@ fun DateTimePickerField(
     var showTimePicker by remember { mutableStateOf(false) }
 
     val parsedZDT = remember(value) {
-        if (value.isBlank()) null
-        else {
-            try {
-                Instant.parse(value.replace(" ", "T")).atZone(ZoneId.systemDefault())
-            } catch (e: Exception) {
-                null
-            }
-        }
+        parsePocketBaseInstant(value)?.atZone(ZoneId.systemDefault())
     }
 
     val effectiveZDT = parsedZDT ?: ZonedDateTime.now(ZoneId.systemDefault())
@@ -61,8 +54,8 @@ fun DateTimePickerField(
         DateTimeFormatter.ofPattern(if (use24HourTime) "HH:mm" else "h:mm a")
     }
 
-    val displayDate = effectiveZDT.format(dateFormatter)
-    val displayTime = if (parsedZDT != null) effectiveZDT.format(timeFormatter) else "Select Time"
+    val displayDate = if (parsedZDT != null) effectiveZDT.format(dateFormatter) else stringResource(R.string.select_date)
+    val displayTime = if (parsedZDT != null) effectiveZDT.format(timeFormatter) else stringResource(R.string.select_time)
 
     Column(modifier = modifier) {
         Text(
@@ -81,7 +74,7 @@ fun DateTimePickerField(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     trailingIcon = {
-                        Icon(Icons.Default.DateRange, contentDescription = "Select Date")
+                        Icon(Icons.Default.DateRange, contentDescription = stringResource(R.string.select_date))
                     }
                 )
                 Box(

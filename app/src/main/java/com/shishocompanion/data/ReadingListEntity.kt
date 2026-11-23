@@ -22,5 +22,9 @@ data class ReadingListEntity(
     val created: String,
     val updated: String,
     val completed: String,
-    val isPendingSync: Boolean = false // True if added locally and needs upload
+    val currentPage: Int = 0,
+    val totalPages: Int = 0,
+    val rating: Int = 0,
+    val isPendingSync: Boolean = false, // True if added locally and needs upload
+    val isPendingDelete: Boolean = false
 )

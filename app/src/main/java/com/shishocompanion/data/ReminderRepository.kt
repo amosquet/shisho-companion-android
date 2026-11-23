@@ -12,16 +12,20 @@ import java.util.UUID
 import com.shishocompanion.BuildConfig
 
 import android.content.Context
+import android.content.SharedPreferences
 
 class ReminderRepository(
     private val client: HttpClient,
     private val dao: ReminderDao,
     private val context: Context,
-    private val baseUrl: String = BuildConfig.POCKETBASE_URL
+    private val baseUrl: String = BuildConfig.POCKETBASE_URL,
+    private val sharedPrefs: SharedPreferences? = null
 ) {
     private val collectionName = "reminders"
     var authToken: String? = null
+        get() = field ?: sharedPrefs?.getString("TOKEN", null)
     var userId: String? = null
+        get() = field ?: sharedPrefs?.getString("USER_ID", null)
 
     fun getReminders(): Flow<List<ReminderItem>> {
         return dao.getAllReminders().map { entities ->
@@ -33,35 +37,51 @@ class ReminderRepository(
                     remindAt = it.remindAt,
                     isSent = it.isSent,
                     created = it.created,
-                    updated = it.updated
+                    updated = it.updated,
+                    book = it.book
                 )
             }
         }
     }
 
     suspend fun sync() {
-        if (authToken.isNullOrEmpty()) return
-        if (TokenUtils.isTokenExpired(authToken)) return
+        val token = authToken
+        if (token.isNullOrEmpty() || TokenUtils.isTokenExpired(token)) return
         try {
+            val pendingDeletes = dao.getPendingDeleteReminders()
+            for (pending in pendingDeletes) {
+                try {
+                    val response = client.delete("$baseUrl/api/collections/$collectionName/records/${pending.id}") {
+                        header("Authorization", "Bearer $token")
+                    }
+                    if (response.status.isSuccess() || response.status.value == 404) {
+                        dao.deleteReminderById(pending.id)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
             val pendingItems = dao.getPendingSyncReminders()
             for (pending in pendingItems) {
                 try {
                     val req = CreateReminderRequest(
-                        owner = pending.owner,
+                        owner = pending.owner.ifEmpty { userId ?: "" },
                         reminderText = pending.reminderText,
                         remindAt = pending.remindAt,
-                        isSent = pending.isSent
+                        isSent = pending.isSent,
+                        book = pending.book
                     )
                     
                     val response = if (pending.id.startsWith("local_")) {
                         client.post("$baseUrl/api/collections/$collectionName/records") {
-                            authToken?.let { header("Authorization", "Bearer $it") }
+                            header("Authorization", "Bearer $token")
                             contentType(ContentType.Application.Json)
                             setBody(req)
                         }
                     } else {
                         client.patch("$baseUrl/api/collections/$collectionName/records/${pending.id}") {
-                            authToken?.let { header("Authorization", "Bearer $it") }
+                            header("Authorization", "Bearer $token")
                             contentType(ContentType.Application.Json)
                             setBody(req)
                         }
@@ -83,27 +103,40 @@ class ReminderRepository(
 
             val uid = userId
             if (!uid.isNullOrEmpty()) {
-                val response: PocketBaseListResponse<ReminderItem> = 
-                    client.get("$baseUrl/api/collections/$collectionName/records") {
-                        authToken?.let { header("Authorization", "Bearer $it") }
-                        parameter("filter", "owner = '$uid'")
-                        parameter("perPage", 500)
-                    }.body()
-
-                dao.clearSyncedReminders()
-                val entities = response.items.map {
-                    ReminderEntity(
-                        id = it.id,
-                        owner = it.owner,
-                        reminderText = it.reminderText,
-                        remindAt = it.remindAt,
-                        isSent = it.isSent,
-                        created = it.created,
-                        updated = it.updated,
-                        isPendingSync = false
-                    )
+                val allRemoteReminders = mutableListOf<ReminderItem>()
+                var page = 1
+                while (true) {
+                    val response: PocketBaseListResponse<ReminderItem> =
+                        client.get("$baseUrl/api/collections/$collectionName/records") {
+                            header("Authorization", "Bearer $token")
+                            parameter("filter", "owner = '$uid'")
+                            parameter("page", page)
+                            parameter("perPage", 500)
+                        }.body()
+                    allRemoteReminders.addAll(response.items)
+                    if (page >= response.totalPages || response.items.isEmpty()) break
+                    page++
                 }
-                dao.insertReminders(entities)
+
+                val stillPendingIds = dao.getPendingSyncReminders().map { it.id }.toSet()
+                val pendingDeleteIds = dao.getPendingDeleteReminders().map { it.id }.toSet()
+                val entities = allRemoteReminders
+                    .filter { it.id !in stillPendingIds && it.id !in pendingDeleteIds }
+                    .map {
+                        ReminderEntity(
+                            id = it.id,
+                            owner = it.owner,
+                            reminderText = it.reminderText,
+                            remindAt = it.remindAt,
+                            isSent = it.isSent,
+                            created = it.created,
+                            updated = it.updated,
+                            isPendingSync = false,
+                            book = it.book
+                        )
+                    }
+                dao.replaceSyncedReminders(entities)
+                com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -114,15 +147,17 @@ class ReminderRepository(
         val fakeId = "local_" + UUID.randomUUID().toString().replace("-", "")
         val newEntity = ReminderEntity(
             id = fakeId,
-            owner = req.owner,
+            owner = req.owner.ifEmpty { userId ?: "" },
             reminderText = req.reminderText,
             remindAt = req.remindAt,
             isSent = req.isSent,
             created = "",
             updated = "",
-            isPendingSync = true
+            isPendingSync = true,
+            book = req.book
         )
         dao.insertReminder(newEntity)
+        com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
         SyncManager.scheduleSync(context)
     }
 
@@ -133,8 +168,10 @@ class ReminderRepository(
                 reminderText = req.reminderText,
                 remindAt = req.remindAt,
                 isSent = req.isSent,
+                book = req.book,
                 isPendingSync = true
             ))
+            com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
             SyncManager.scheduleSync(context)
         }
     }
@@ -142,16 +179,26 @@ class ReminderRepository(
     suspend fun deleteReminder(id: String) {
         if (id.startsWith("local_")) {
             dao.deleteReminderById(id)
-        } else {
+            com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
+            return
+        }
+        dao.markPendingDelete(id)
+        com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
+        val token = authToken
+        if (!token.isNullOrEmpty() && !TokenUtils.isTokenExpired(token)) {
             try {
-                client.delete("$baseUrl/api/collections/$collectionName/records/$id") {
-                    authToken?.let { header("Authorization", "Bearer $it") }
+                val response = client.delete("$baseUrl/api/collections/$collectionName/records/$id") {
+                    header("Authorization", "Bearer $token")
                 }
-                dao.deleteReminderById(id)
+                if (response.status.isSuccess() || response.status.value == 404) {
+                    dao.deleteReminderById(id)
+                    return
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
+        SyncManager.scheduleSync(context)
     }
 
     suspend fun fetchReminderById(id: String): ReminderItem? {
@@ -163,7 +210,8 @@ class ReminderRepository(
             remindAt = entity.remindAt,
             isSent = entity.isSent,
             created = entity.created,
-            updated = entity.updated
+            updated = entity.updated,
+            book = entity.book
         )
     }
 }

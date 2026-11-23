@@ -47,7 +47,9 @@ fun NoteDetailScreen(
     onTextUpdate: (String) -> Unit,
     onNavigateBack: () -> Unit,
     isSplitScreen: Boolean = false,
-    dateFormatPreference: String = "SYSTEM"
+    dateFormatPreference: String = "SYSTEM",
+    authToken: String? = null,
+    linkedBookTitle: String? = null
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var enlargedImageUrl by remember { mutableStateOf<String?>(null) }
@@ -66,7 +68,10 @@ fun NoteDetailScreen(
                 },
                 actions = {
                     IconButton(onClick = onArchiveClick) {
-                        Icon(if (item.archived) Icons.Filled.Unarchive else Icons.Filled.Archive, contentDescription = if (item.archived) "Unarchive" else "Archive")
+                        Icon(
+                            if (item.archived) Icons.Filled.Unarchive else Icons.Filled.Archive,
+                            contentDescription = stringResource(if (item.archived) R.string.unarchive else R.string.archive)
+                        )
                     }
                     IconButton(onClick = onEditClick) {
                         Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.edit))
@@ -97,19 +102,27 @@ fun NoteDetailScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            if (!linkedBookTitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text("\uD83D\uDCDA $linkedBookTitle") }
+                )
+            }
+
             if (item.created.isNotEmpty() || item.updated.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     if (item.created.isNotEmpty()) {
                         Text(
-                            text = "Created: ${formatDateOnly(item.created, dateFormatPreference)}",
+                            text = stringResource(R.string.created_format, formatDateOnly(item.created, dateFormatPreference)),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     if (item.updated.isNotEmpty()) {
                         Text(
-                            text = "Updated: ${formatDateOnly(item.updated, dateFormatPreference)}",
+                            text = stringResource(R.string.updated_format, formatDateOnly(item.updated, dateFormatPreference)),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -145,7 +158,7 @@ fun NoteDetailScreen(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = content,
+                            text = parseNoteMarkdownLine(content),
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 textDecoration = if (isChecked) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
                             ),
@@ -157,12 +170,12 @@ fun NoteDetailScreen(
                             newLines.removeAt(index)
                             onTextUpdate(newLines.joinToString("\n"))
                         }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Delete item", tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 } else {
                     Text(
-                        text = line,
+                        text = parseNoteMarkdownLine(line),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
@@ -240,16 +253,32 @@ fun NoteDetailScreen(
                     }
                     IconButton(onClick = {
                         try {
-                            val uri = Uri.parse(enlargedImageUrl)
-                            val request = DownloadManager.Request(uri)
-                                .setTitle("Image Download")
-                                .setDescription("Downloading attachment...")
-                                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, uri.lastPathSegment ?: "attachment.jpg")
-                            
-                            val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-                            downloadManager.enqueue(request)
-                            Toast.makeText(context, "Download started", Toast.LENGTH_SHORT).show()
+                            val urlString = enlargedImageUrl ?: return@IconButton
+                            if (urlString.startsWith("file://")) {
+                                val srcFile = java.io.File(urlString.removePrefix("file://"))
+                                val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                                if (srcFile.exists() && downloadsDir != null) {
+                                    downloadsDir.mkdirs()
+                                    val destFile = java.io.File(downloadsDir, srcFile.name)
+                                    srcFile.copyTo(destFile, overwrite = true)
+                                    Toast.makeText(context, "Saved to Downloads", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                val uri = Uri.parse(urlString)
+                                val request = DownloadManager.Request(uri)
+                                    .setTitle("Image Download")
+                                    .setDescription("Downloading attachment...")
+                                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                    .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, uri.lastPathSegment ?: "attachment.jpg")
+                                if (!authToken.isNullOrBlank() && urlString.contains("/api/files/")) {
+                                    request.addRequestHeader("Authorization", "Bearer $authToken")
+                                }
+                                val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                                downloadManager.enqueue(request)
+                                Toast.makeText(context, "Download started", Toast.LENGTH_SHORT).show()
+                            }
                         } catch (e: Exception) {
                             Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
                         }

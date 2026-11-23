@@ -1,43 +1,26 @@
 package com.shishocompanion.data
 
 import android.content.Context
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import dagger.hilt.EntryPoint
-import dagger.hilt.InstallIn
-import dagger.hilt.android.EntryPointAccessors
-import dagger.hilt.components.SingletonComponent
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 
-class SyncWorker(
-    appContext: Context,
-    workerParams: WorkerParameters
+@HiltWorker
+class SyncWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val noteRepository: NoteRepository,
+    private val reminderRepository: ReminderRepository,
+    private val readingListRepository: ReadingListRepository
 ) : CoroutineWorker(appContext, workerParams) {
-
-    @EntryPoint
-    @InstallIn(SingletonComponent::class)
-    interface SyncWorkerEntryPoint {
-        fun noteRepository(): NoteRepository
-        fun reminderRepository(): ReminderRepository
-        fun readingListRepository(): ReadingListRepository
-    }
 
     override suspend fun doWork(): Result {
         return try {
-            val hiltEntryPoint = EntryPointAccessors.fromApplication(
-                applicationContext,
-                SyncWorkerEntryPoint::class.java
-            )
-            
-            val noteRepository = hiltEntryPoint.noteRepository()
             noteRepository.sync()
-            
-            // Also sync others to be thorough
-            val reminderRepository = hiltEntryPoint.reminderRepository()
             reminderRepository.sync()
-            
-            val readingListRepository = hiltEntryPoint.readingListRepository()
             readingListRepository.sync()
-
             Result.success()
         } catch (e: Exception) {
             e.printStackTrace()

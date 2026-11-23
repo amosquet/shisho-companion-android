@@ -57,7 +57,7 @@ fun LoginScreen(
             }
 
             Text(
-                text = if (isRegistering) "Create an Account" else "Welcome Back",
+                text = stringResource(if (isRegistering) R.string.create_account else R.string.welcome_back),
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
@@ -91,7 +91,7 @@ fun LoginScreen(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isRegistering) "Register" else "Login")
+                Text(stringResource(if (isRegistering) R.string.register else R.string.login))
             }
             
             Spacer(modifier = Modifier.height(8.dp))
@@ -100,7 +100,7 @@ fun LoginScreen(
                 onClick = { isRegistering = !isRegistering },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (isRegistering) "Already have an account? Login" else "Don't have an account? Register")
+                Text(stringResource(if (isRegistering) R.string.already_have_account_login else R.string.dont_have_account_register))
             }
             
             Spacer(modifier = Modifier.height(16.dp))

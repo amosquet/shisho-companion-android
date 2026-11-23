@@ -3,6 +3,7 @@ package com.shishocompanion.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.shishocompanion.data.AppDatabase
+import com.shishocompanion.data.AuthRepository
 import com.shishocompanion.data.ReadingListRepository
 import com.shishocompanion.data.NoteRepository
 import com.shishocompanion.data.ReminderRepository
@@ -13,13 +14,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
+    @param:ApplicationContext private val appContext: Context,
+    private val authRepository: AuthRepository,
     private val repository: ReadingListRepository,
     private val noteRepository: NoteRepository,
     private val reminderRepository: ReminderRepository,
@@ -50,6 +55,13 @@ class LoginViewModel @Inject constructor(
                 _showSessionExpiredDialog.value = true
             } else {
                 viewModelScope.launch {
+                    val refreshed = authRepository.refreshAuthTokenIfNeeded().getOrDefault(false)
+                    if (refreshed) {
+                        val newToken = sharedPrefs.getString("TOKEN", null)
+                        repository.authToken = newToken
+                        noteRepository.authToken = newToken
+                        reminderRepository.authToken = newToken
+                    }
                     fetchAndSavePreferences()
                 }
             }
@@ -65,7 +77,7 @@ class LoginViewModel @Inject constructor(
     fun login(email: String, pin: String) {
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            val result = repository.loginWithEmail(email, pin)
+            val result = authRepository.loginWithEmail(email, pin)
             if (result.isSuccess) {
                 onLoginSuccess()
             } else {
@@ -77,7 +89,7 @@ class LoginViewModel @Inject constructor(
     fun register(email: String, pin: String) {
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            val result = repository.registerWithEmail(email, pin)
+            val result = authRepository.registerWithEmail(email, pin)
             if (result.isSuccess) {
                 onLoginSuccess()
             } else {
@@ -87,7 +99,7 @@ class LoginViewModel @Inject constructor(
     }
 
     private suspend fun fetchAndSavePreferences() {
-        val meResult = repository.getMe()
+        val meResult = authRepository.getMe()
         if (meResult.isSuccess) {
             val me = meResult.getOrNull()
             userPrefs.updateFromRemote(me?.preferences, me?.discordId)
@@ -95,9 +107,12 @@ class LoginViewModel @Inject constructor(
     }
 
     private suspend fun onLoginSuccess() {
-        val userId = repository.userId ?: ""
-        val token = repository.authToken ?: ""
-        
+        val userId = authRepository.userId ?: ""
+        val token = authRepository.authToken ?: ""
+
+        repository.authToken = token
+        repository.userId = userId
+        repository.userEmail = authRepository.userEmail
         noteRepository.authToken = token
         noteRepository.userId = userId
         reminderRepository.authToken = token
@@ -105,15 +120,6 @@ class LoginViewModel @Inject constructor(
         
         // Fetch preferences
         fetchAndSavePreferences()
-        
-        val email = repository.userEmail ?: ""
-
-        sharedPrefs.edit {
-            putString("TOKEN", token)
-                .putString("USER_ID", userId)
-                .putString("USER_EMAIL", email)
-                .putBoolean("IS_GUEST", false)
-        }
             
         // Sync local data created as guest to pocketbase
         repository.sync()
@@ -128,7 +134,22 @@ class LoginViewModel @Inject constructor(
         _uiState.value = LoginUiState.Guest
     }
 
+    fun hasActiveOrGuestSession(): Boolean {
+        return _uiState.value is LoginUiState.Success || _uiState.value is LoginUiState.Guest
+    }
+
+    fun prepareReLogin() {
+        sharedPrefs.edit {
+            remove("TOKEN")
+        }
+        repository.authToken = null
+        noteRepository.authToken = null
+        reminderRepository.authToken = null
+        _uiState.value = LoginUiState.Idle
+    }
+
     fun logout() {
+        com.shishocompanion.notifications.NotificationHelper.cancelAllAlarms(appContext)
         viewModelScope.launch(Dispatchers.IO) {
             database.clearAllTables()
         }

@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.shishocompanion.data.NoteItem
 import com.shishocompanion.ui.components.CustomPullToRefreshBox
 import com.shishocompanion.ui.components.CustomSwipeToDismissBox
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,9 +46,14 @@ fun NotesListScreen(
     onArchiveSelected: () -> Unit,
     onDeleteNote: (String) -> Unit,
     onArchiveNote: (String) -> Unit,
+    onRestoreNote: ((NoteItem) -> Unit)? = null,
+    bookTitleLookup: Map<String, String> = emptyMap(),
     dateFormatPreference: String = "SYSTEM",
-    swipeActionPreference: String = "DELETE"
+    swipeActionPreference: String = "DELETE",
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
@@ -59,9 +65,10 @@ fun NotesListScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(if (inSelectionMode) "${selectedNoteIds.size} selected" else stringResource(R.string.notes)) },
+                title = { Text(if (inSelectionMode) stringResource(R.string.selected_count_format, selectedNoteIds.size) else stringResource(R.string.notes)) },
                 navigationIcon = {
                     if (inSelectionMode) {
                         IconButton(onClick = onClearSelection) {
@@ -131,7 +138,7 @@ fun NotesListScreen(
                         val filteredNotes = uiState.items.filter { !it.archived }
                         if (filteredNotes.isEmpty()) {
                             Text(
-                                text = "You have no notes.",
+                                text = stringResource(R.string.no_notes),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.align(Alignment.Center)
@@ -146,13 +153,40 @@ fun NotesListScreen(
                                     val isSelected = selectedNoteIds.contains(item.id)
                                     CustomSwipeToDismissBox(
                                         swipeActionPreference = swipeActionPreference,
-                                        onDismiss = { onDeleteNote(item.id) },
-                                        onArchive = { onArchiveNote(item.id) }
+                                        onDismiss = {
+                                            onDeleteNote(item.id)
+                                            if (onRestoreNote != null) {
+                                                scope.launch {
+                                                    val res = snackbarHostState.showSnackbar(
+                                                        message = context.getString(R.string.deleted_note_message, item.title),
+                                                        actionLabel = context.getString(R.string.undo),
+                                                        duration = SnackbarDuration.Short
+                                                    )
+                                                    if (res == SnackbarResult.ActionPerformed) {
+                                                        onRestoreNote(item)
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onArchive = {
+                                            onArchiveNote(item.id)
+                                            scope.launch {
+                                                val res = snackbarHostState.showSnackbar(
+                                                    message = context.getString(R.string.archived_note_message, item.title),
+                                                    actionLabel = context.getString(R.string.undo),
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                                if (res == SnackbarResult.ActionPerformed) {
+                                                    onArchiveNote(item.id)
+                                                }
+                                            }
+                                        }
                                     ) {
                                         NoteItemCard(
                                             item = item,
                                             isSelected = isSelected,
                                             dateFormatPreference = dateFormatPreference,
+                                            bookTitle = bookTitleLookup[item.book],
                                             onClick = { 
                                                 if (inSelectionMode) onToggleSelection(item.id)
                                                 else onItemClick(item.id)
@@ -287,7 +321,14 @@ fun NotesListScreen(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun NoteItemCard(item: NoteItem, isSelected: Boolean, dateFormatPreference: String, onClick: () -> Unit, onLongClick: () -> Unit) {
+fun NoteItemCard(
+    item: NoteItem,
+    isSelected: Boolean,
+    dateFormatPreference: String,
+    bookTitle: String? = null,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -332,7 +373,7 @@ fun NoteItemCard(item: NoteItem, isSelected: Boolean, dateFormatPreference: Stri
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = content,
+                                    text = parseNoteMarkdownLine(content),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.secondary,
                                     maxLines = 1,
@@ -341,7 +382,7 @@ fun NoteItemCard(item: NoteItem, isSelected: Boolean, dateFormatPreference: Stri
                             }
                         } else {
                             Text(
-                                text = line,
+                                text = parseNoteMarkdownLine(line),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.secondary,
                                 maxLines = 1,
@@ -358,10 +399,20 @@ fun NoteItemCard(item: NoteItem, isSelected: Boolean, dateFormatPreference: Stri
                     }
                 }
             }
+            if (!bookTitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "\uD83D\uDCDA $bookTitle",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             if (item.attachment.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "${item.attachment.size} attachment${if (item.attachment.size == 1) "" else "s"}",
+                    text = stringResource(R.string.attachments_count_format, item.attachment.size),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -369,7 +420,7 @@ fun NoteItemCard(item: NoteItem, isSelected: Boolean, dateFormatPreference: Stri
             if (item.updated.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Updated: ${formatDateOnly(item.updated, dateFormatPreference)}",
+                    text = stringResource(R.string.updated_format, formatDateOnly(item.updated, dateFormatPreference)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

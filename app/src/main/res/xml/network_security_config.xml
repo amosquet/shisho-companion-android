@@ -7,13 +7,15 @@
     <domain-config>
         <domain includeSubdomains="true">shisho.amcloud.dev</domain>
         <domain includeSubdomains="true">pocketbase.amcloud.dev</domain>
-        <pin-set expiration="2026-12-31">
+        <pin-set expiration="2028-12-31">
             <!-- Leaf Certificate -->
             <pin digest="SHA-256">UzoRtYNNgxNCfgHZn47F0jaj8JXeterqbHoY2J9pdoU=</pin>
             <!-- Intermediate Certificate -->
             <pin digest="SHA-256">kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4=</pin>
-            <!-- Root Certificate -->
+            <!-- Root Certificate (ISRG Root X1) -->
             <pin digest="SHA-256">mEflZT5enoR1FuXLgYYGqnVEoZvmf9c2bVBpiOjYQ0c=</pin>
+            <!-- Backup Root Certificate (ISRG Root X2) -->
+            <pin digest="SHA-256">C5+lpZ7tcVwmwQIMcRtPbsQtWLABXhQzejna0wHFr8M=</pin>
         </pin-set>
     </domain-config>
 </network-security-config>

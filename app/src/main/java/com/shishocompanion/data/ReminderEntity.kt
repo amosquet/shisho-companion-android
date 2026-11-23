@@ -12,5 +12,7 @@ data class ReminderEntity(
     val isSent: Boolean,
     val created: String,
     val updated: String,
-    val isPendingSync: Boolean = false
+    val isPendingSync: Boolean = false,
+    val book: String = "",
+    val isPendingDelete: Boolean = false
 )

@@ -26,8 +26,8 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build unsigned dev APKs
-        run: ./gradlew assembleDebug assembleRelease
+      - name: Run unit tests and build unsigned dev APKs
+        run: ./gradlew testDebugUnitTest assembleDebug assembleRelease
 
       - name: Upload Dev APKs
         uses: actions/upload-artifact@v4

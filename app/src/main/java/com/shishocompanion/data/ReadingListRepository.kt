@@ -16,18 +16,24 @@ import com.shishocompanion.data.VolumeInfo
 import com.shishocompanion.BuildConfig
 
 import android.content.Context
+import android.content.SharedPreferences
+import java.io.File
 
 class ReadingListRepository(
     private val client: HttpClient,
     private val dao: ReadingListDao,
     private val context: Context,
     private val baseUrl: String = BuildConfig.POCKETBASE_URL,
-    private val shishoApiUrl: String = BuildConfig.SHISHO_API_URL
+    private val shishoApiUrl: String = BuildConfig.SHISHO_API_URL,
+    private val sharedPrefs: SharedPreferences? = null
 ) {
     private val collectionName = "shisho_books"
     var authToken: String? = null
+        get() = field ?: sharedPrefs?.getString("TOKEN", null)
     var userId: String? = null
+        get() = field ?: sharedPrefs?.getString("USER_ID", null)
     var userEmail: String? = null
+        get() = field ?: sharedPrefs?.getString("USER_EMAIL", null)
 
     private fun buildMultipartData(req: CreateReadingListItemRequest): MultiPartFormDataContent {
         return MultiPartFormDataContent(
@@ -36,12 +42,17 @@ class ReadingListRepository(
                 append("owner", req.owner)
                 append("url", req.url)
                 append("description", req.description)
+                append("imageUrl", req.imageUrl)
                 append("author", req.author)
                 append("status", req.status)
+                append("publishDate", req.publishDate)
                 append("isbn", req.isbn)
                 append("startDate", req.startDate)
                 append("endDate", req.endDate)
                 append("completed", req.completed)
+                append("currentPage", req.currentPage.toString())
+                append("totalPages", req.totalPages.toString())
+                append("rating", req.rating.toString())
                 
                 req.coverBytes?.let { bytes ->
                     val filename = req.coverFilename ?: "cover.jpg"
@@ -52,6 +63,13 @@ class ReadingListRepository(
                 }
             }
         )
+    }
+
+    private fun saveCoverBytesToCache(bytes: ByteArray, filename: String?): String {
+        val safeName = (filename ?: "cover.jpg").substringAfterLast('/')
+        val file = File(context.cacheDir, "cover_${System.currentTimeMillis()}_$safeName")
+        file.writeBytes(bytes)
+        return file.absolutePath
     }
 
     suspend fun loginWithEmail(email: String, password: String): Result<Unit> {
@@ -164,10 +182,11 @@ class ReadingListRepository(
     fun getReadingList(): Flow<List<ReadingListItem>> {
         return dao.getAllItems().map { entities ->
             val items = entities.map {
-                val generatedImageUrl = if (it.cover.isNotEmpty() && it.id.isNotEmpty() && !it.id.startsWith("local_")) {
-                    "$baseUrl/api/files/$collectionName/${it.id}/${it.cover}"
-                } else {
-                    it.imageUrl
+                val generatedImageUrl = when {
+                    it.cover.startsWith("/") -> "file://${it.cover}"
+                    it.cover.isNotEmpty() && it.id.isNotEmpty() && !it.id.startsWith("local_") ->
+                        "$baseUrl/api/files/$collectionName/${it.id}/${it.cover}"
+                    else -> it.imageUrl
                 }
                 
                 ReadingListItem(
@@ -186,7 +205,10 @@ class ReadingListRepository(
                     endDate = it.endDate,
                     created = it.created,
                     updated = it.updated,
-                    completed = it.completed
+                    completed = it.completed,
+                    currentPage = it.currentPage,
+                    totalPages = it.totalPages,
+                    rating = it.rating
                 )
             }
             sortReadingList(items)
@@ -194,112 +216,193 @@ class ReadingListRepository(
     }
 
     suspend fun sync() {
-        if (authToken.isNullOrEmpty()) return
-        if (TokenUtils.isTokenExpired(authToken)) return
+        val token = authToken
+        if (token.isNullOrEmpty() || TokenUtils.isTokenExpired(token)) return
         try {
+            // 0. Process pending deletions
+            val pendingDeletes = dao.getPendingDeleteItems()
+            for (pending in pendingDeletes) {
+                try {
+                    val response = client.delete("$baseUrl/api/collections/$collectionName/records/${pending.id}") {
+                        header("Authorization", "Bearer $token")
+                    }
+                    if (response.status.isSuccess() || response.status.value == 404) {
+                        dao.deleteById(pending.id)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
             // 1. Upload any pending local items
             val pendingItems = dao.getPendingSyncItems()
             for (pending in pendingItems) {
+                var coverBytes: ByteArray? = null
+                var coverFilename: String? = null
+                if (pending.cover.startsWith("/")) {
+                    val file = File(pending.cover)
+                    if (file.exists()) {
+                        coverBytes = file.readBytes()
+                        coverFilename = file.name
+                    }
+                }
                 val createReq = CreateReadingListItemRequest(
-                    owner = pending.owner,
+                    owner = pending.owner.ifEmpty { userId ?: "" },
                     title = pending.title,
                     url = pending.url,
                     description = pending.description,
                     imageUrl = pending.imageUrl,
                     author = pending.author,
                     status = pending.status,
+                    publishDate = pending.publishDate,
                     isbn = pending.isbn,
                     startDate = pending.startDate,
                     endDate = pending.endDate,
-                    completed = pending.completed
+                    completed = pending.completed,
+                    currentPage = pending.currentPage,
+                    totalPages = pending.totalPages,
+                    rating = pending.rating,
+                    coverBytes = coverBytes,
+                    coverFilename = coverFilename
                 )
                 try {
-                    val remoteItem: ReadingListItem = client.post("$baseUrl/api/collections/$collectionName/records") {
-                        contentType(ContentType.Application.Json)
-                        authToken?.let { header("Authorization", "Bearer $it") }
-                        setBody(createReq)
-                    }.body()
-                    
-                    // Delete the local stub, we will fetch the true remote version in step 2
-                    dao.deleteById(pending.id)
+                    val response = if (pending.id.startsWith("local_")) {
+                        if (createReq.coverBytes != null) {
+                            client.post("$baseUrl/api/collections/$collectionName/records") {
+                                header("Authorization", "Bearer $token")
+                                setBody(buildMultipartData(createReq))
+                            }
+                        } else {
+                            client.post("$baseUrl/api/collections/$collectionName/records") {
+                                contentType(ContentType.Application.Json)
+                                header("Authorization", "Bearer $token")
+                                setBody(createReq)
+                            }
+                        }
+                    } else {
+                        if (createReq.coverBytes != null) {
+                            client.patch("$baseUrl/api/collections/$collectionName/records/${pending.id}") {
+                                header("Authorization", "Bearer $token")
+                                setBody(buildMultipartData(createReq))
+                            }
+                        } else {
+                            client.patch("$baseUrl/api/collections/$collectionName/records/${pending.id}") {
+                                contentType(ContentType.Application.Json)
+                                header("Authorization", "Bearer $token")
+                                setBody(createReq)
+                            }
+                        }
+                    }
+
+                    if (response.status.isSuccess()) {
+                        if (pending.id.startsWith("local_")) {
+                            dao.deleteById(pending.id)
+                        } else {
+                            dao.insertItem(pending.copy(isPendingSync = false))
+                        }
+                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                     // If upload fails, keep it pending
                 }
             }
 
-            // 2. Fetch fresh remote list
-            val response: PocketBaseListResponse<ReadingListItem> = 
-                client.get("$baseUrl/api/collections/$collectionName/records?perPage=500") {
-                    authToken?.let { header("Authorization", "Bearer $it") }
-                }.body()
-
-            // 3. Sync to local database
-            // We do strictly authoritative: delete all non-pending items locally, and insert what remote gave us.
-            dao.clearSyncedItems()
-            val entities = response.items.map {
-                ReadingListEntity(
-                    id = it.id,
-                    owner = it.owner,
-                    title = it.title,
-                    url = it.url,
-                    description = it.description,
-                    imageUrl = it.imageUrl,
-                    author = it.author,
-                    cover = it.cover,
-                    status = it.status,
-                    publishDate = it.publishDate,
-                    isbn = it.isbn,
-                    startDate = it.startDate,
-                    endDate = it.endDate,
-                    created = it.created,
-                    updated = it.updated,
-                    completed = it.completed,
-                    isPendingSync = false
-                )
+            // 2. Fetch fresh remote list with pagination
+            val allRemoteItems = mutableListOf<ReadingListItem>()
+            var page = 1
+            while (true) {
+                val response: PocketBaseListResponse<ReadingListItem> =
+                    client.get("$baseUrl/api/collections/$collectionName/records") {
+                        header("Authorization", "Bearer $token")
+                        parameter("page", page)
+                        parameter("perPage", 500)
+                    }.body()
+                allRemoteItems.addAll(response.items)
+                if (page >= response.totalPages || response.items.isEmpty()) break
+                page++
             }
-            dao.insertItems(entities)
+
+            // 3. Sync to local database transactionally, preserving any items still pending sync or delete
+            val stillPendingIds = dao.getPendingSyncItems().map { it.id }.toSet()
+            val pendingDeleteIds = dao.getPendingDeleteItems().map { it.id }.toSet()
+            val entities = allRemoteItems
+                .filter { it.id !in stillPendingIds && it.id !in pendingDeleteIds }
+                .map {
+                    ReadingListEntity(
+                        id = it.id,
+                        owner = it.owner,
+                        title = it.title,
+                        url = it.url,
+                        description = it.description,
+                        imageUrl = it.imageUrl,
+                        author = it.author,
+                        cover = it.cover,
+                        status = it.status,
+                        publishDate = it.publishDate,
+                        isbn = it.isbn,
+                        startDate = it.startDate,
+                        endDate = it.endDate,
+                        created = it.created,
+                        updated = it.updated,
+                        completed = it.completed,
+                        currentPage = it.currentPage,
+                        totalPages = it.totalPages,
+                        rating = it.rating,
+                        isPendingSync = false
+                    )
+                }
+            dao.replaceSyncedItems(entities)
+            com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     suspend fun addItem(item: CreateReadingListItemRequest) {
-        if (item.coverBytes != null) {
+        val token = authToken
+        val uid = this.userId ?: ""
+        if (item.coverBytes != null && !token.isNullOrEmpty() && !TokenUtils.isTokenExpired(token)) {
             try {
-                val finalReq = item.copy(owner = this.userId ?: "")
-                client.post("$baseUrl/api/collections/$collectionName/records") {
-                    authToken?.let { header("Authorization", "Bearer $it") }
+                val finalReq = item.copy(owner = uid)
+                val response = client.post("$baseUrl/api/collections/$collectionName/records") {
+                    header("Authorization", "Bearer $token")
                     setBody(buildMultipartData(finalReq))
                 }
-                SyncManager.scheduleSync(context)
-                return
+                if (response.status.isSuccess()) {
+                    SyncManager.scheduleSync(context)
+                    return
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
-        
+
+        val cachedCoverPath = item.coverBytes?.let { saveCoverBytesToCache(it, item.coverFilename) } ?: ""
         val fakeId = "local_" + UUID.randomUUID().toString().replace("-", "")
         val newEntity = ReadingListEntity(
             id = fakeId,
-            owner = this.userId ?: "",
+            owner = uid,
             title = item.title,
             url = item.url,
             description = item.description,
             imageUrl = item.imageUrl,
             author = item.author,
-            cover = "",
+            cover = cachedCoverPath,
             status = item.status,
-            publishDate = "",
+            publishDate = item.publishDate,
             isbn = item.isbn,
             startDate = item.startDate,
             endDate = item.endDate,
             created = "",
             updated = "",
             completed = item.completed,
+            currentPage = item.currentPage,
+            totalPages = item.totalPages,
+            rating = item.rating,
             isPendingSync = true
         )
         dao.insertItem(newEntity)
+        com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
         // Attempt a sync in background
         SyncManager.scheduleSync(context)
     }
@@ -308,50 +411,98 @@ class ReadingListRepository(
         if (id.startsWith("local_")) {
             val existing = dao.getById(id)
             if (existing != null) {
+                val updatedCover = req.coverBytes?.let { saveCoverBytesToCache(it, req.coverFilename) } ?: existing.cover
                 dao.insertItem(existing.copy(
-                    title = req.title, 
-                    url = req.url, 
+                    title = req.title,
+                    url = req.url,
                     description = req.description,
+                    imageUrl = req.imageUrl.ifEmpty { existing.imageUrl },
                     author = req.author,
+                    cover = updatedCover,
                     status = req.status,
+                    publishDate = req.publishDate.ifEmpty { existing.publishDate },
                     isbn = req.isbn,
                     startDate = req.startDate,
                     endDate = req.endDate,
-                    completed = req.completed
+                    completed = req.completed,
+                    currentPage = req.currentPage,
+                    totalPages = req.totalPages,
+                    rating = req.rating,
+                    isPendingSync = true
                 ))
+                com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
+                SyncManager.scheduleSync(context)
             }
         } else {
+            val token = authToken
             val finalReq = req.copy(owner = this.userId ?: "")
             try {
-                if (finalReq.coverBytes != null) {
+                if (token.isNullOrEmpty() || TokenUtils.isTokenExpired(token)) {
+                    throw IllegalStateException("No valid token for immediate patch")
+                }
+                val response = if (finalReq.coverBytes != null) {
                     client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
-                        authToken?.let { header("Authorization", "Bearer $it") }
+                        header("Authorization", "Bearer $token")
                         setBody(buildMultipartData(finalReq))
                     }
                 } else {
                     client.patch("$baseUrl/api/collections/$collectionName/records/$id") {
                         contentType(ContentType.Application.Json)
-                        authToken?.let { header("Authorization", "Bearer $it") }
+                        header("Authorization", "Bearer $token")
                         setBody(finalReq)
                     }
+                }
+                if (!response.status.isSuccess()) {
+                    throw Exception("Patch failed: ${response.status}")
+                }
+                val existing = dao.getById(id)
+                if (existing != null) {
+                    dao.insertItem(existing.copy(
+                        title = req.title,
+                        url = req.url,
+                        description = req.description,
+                        imageUrl = req.imageUrl.ifEmpty { existing.imageUrl },
+                        author = req.author,
+                        status = req.status,
+                        publishDate = req.publishDate.ifEmpty { existing.publishDate },
+                        isbn = req.isbn,
+                        startDate = req.startDate,
+                        endDate = req.endDate,
+                        completed = req.completed,
+                        currentPage = req.currentPage,
+                        totalPages = req.totalPages,
+                        rating = req.rating,
+                        isPendingSync = false
+                    ))
+                    com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
                 }
                 SyncManager.scheduleSync(context)
             } catch (e: Exception) {
                 e.printStackTrace()
-                // Fallback to update locally if offline
+                // Fallback to update locally if offline and mark pending sync
                 val existing = dao.getById(id)
                 if (existing != null) {
+                    val updatedCover = req.coverBytes?.let { saveCoverBytesToCache(it, req.coverFilename) } ?: existing.cover
                     dao.insertItem(existing.copy(
-                        title = req.title, 
-                        url = req.url, 
+                        title = req.title,
+                        url = req.url,
                         description = req.description,
+                        imageUrl = req.imageUrl.ifEmpty { existing.imageUrl },
                         author = req.author,
+                        cover = updatedCover,
                         status = req.status,
+                        publishDate = req.publishDate.ifEmpty { existing.publishDate },
                         isbn = req.isbn,
                         startDate = req.startDate,
                         endDate = req.endDate,
-                        completed = req.completed
+                        completed = req.completed,
+                        currentPage = req.currentPage,
+                        totalPages = req.totalPages,
+                        rating = req.rating,
+                        isPendingSync = true
                     ))
+                    com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
+                    SyncManager.scheduleSync(context)
                 }
             }
         }
@@ -360,16 +511,26 @@ class ReadingListRepository(
     suspend fun deleteItem(id: String) {
         if (id.startsWith("local_")) {
             dao.deleteById(id)
-        } else {
+            com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
+            return
+        }
+        dao.markPendingDelete(id)
+        com.shishocompanion.widget.ShishoWidgetProvider.updateAllWidgets(context)
+        val token = authToken
+        if (!token.isNullOrEmpty() && !TokenUtils.isTokenExpired(token)) {
             try {
-                client.delete("$baseUrl/api/collections/$collectionName/records/$id") {
-                    authToken?.let { header("Authorization", "Bearer $it") }
+                val response = client.delete("$baseUrl/api/collections/$collectionName/records/$id") {
+                    header("Authorization", "Bearer $token")
                 }
-                dao.deleteById(id)
+                if (response.status.isSuccess() || response.status.value == 404) {
+                    dao.deleteById(id)
+                    return
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
+        SyncManager.scheduleSync(context)
     }
 
     suspend fun getMe(): Result<UserMeResponse> {
@@ -445,6 +606,44 @@ class ReadingListRepository(
             }.body()
 
             response.items?.mapNotNull { it.volumeInfo } ?: emptyList()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    suspend fun searchOpenLibrary(
+        title: String? = null,
+        author: String? = null,
+        isbn: String? = null
+    ): List<VolumeInfo> {
+        return try {
+            val response: OpenLibrarySearchResponse = client.get("https://openlibrary.org/search.json") {
+                if (!isbn.isNullOrBlank()) {
+                    parameter("isbn", isbn.trim())
+                } else {
+                    if (!title.isNullOrBlank()) parameter("title", title.trim())
+                    if (!author.isNullOrBlank()) parameter("author", author.trim())
+                }
+                parameter("limit", 20)
+            }.body()
+
+            response.docs?.map { doc ->
+                val identifiers = doc.isbn?.map { code ->
+                    val type = if (code.length == 13) "ISBN_13" else "ISBN_10"
+                    IndustryIdentifier(type = type, identifier = code)
+                }
+                val coverUrl = doc.coverId?.let { "https://covers.openlibrary.org/b/id/$it-M.jpg" }
+                VolumeInfo(
+                    title = doc.title,
+                    subtitle = doc.subtitle,
+                    authors = doc.authorName,
+                    publishedDate = doc.firstPublishYear?.toString(),
+                    industryIdentifiers = identifiers,
+                    imageLinks = coverUrl?.let { ImageLinks(thumbnail = it, smallThumbnail = it) },
+                    pageCount = doc.numberOfPagesMedian
+                )
+            } ?: emptyList()
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()

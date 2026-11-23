@@ -71,6 +71,25 @@ class NotesViewModel @Inject constructor(
         }
     }
 
+    fun restoreNote(item: NoteItem) {
+        viewModelScope.launch {
+            val localAttachments = item.attachment
+                .filter { it.startsWith("file://") || it.startsWith("/") }
+                .mapNotNull { copyUriToCache(it) }
+                .filter { it.isNotEmpty() }
+            repository.addNote(
+                CreateNoteRequest(
+                    owner = item.owner,
+                    title = item.title,
+                    text = item.text,
+                    attachment = localAttachments,
+                    archived = item.archived,
+                    book = item.book
+                )
+            )
+        }
+    }
+
     fun toggleNoteSelection(id: String) {
         _selectedNoteIds.value = _selectedNoteIds.value.toMutableSet().apply {
             if (contains(id)) remove(id) else add(id)
@@ -101,7 +120,8 @@ class NotesViewModel @Inject constructor(
                         title = note.title,
                         text = note.text,
                         attachment = note.attachment,
-                        archived = !note.archived
+                        archived = !note.archived,
+                        book = note.book
                     ))
                 }
             }
@@ -120,7 +140,8 @@ class NotesViewModel @Inject constructor(
                             title = note.title,
                             text = note.text,
                             attachment = note.attachment,
-                            archived = true
+                            archived = true,
+                            book = note.book
                         ))
                     }
                 }
@@ -141,7 +162,8 @@ class NotesViewModel @Inject constructor(
                             title = note.title,
                             text = note.text,
                             attachment = note.attachment,
-                            archived = false
+                            archived = false,
+                            book = note.book
                         ))
                     }
                 }
@@ -160,6 +182,7 @@ class NotesViewModel @Inject constructor(
 
     fun copyUriToCache(uriString: String): String? {
         if (uriString.isEmpty()) return ""
+        if (uriString.startsWith("file://")) return uriString.removePrefix("file://")
         if (uriString.startsWith("http") || uriString.startsWith("/")) return uriString // Already remote URL or local file path
         
         try {

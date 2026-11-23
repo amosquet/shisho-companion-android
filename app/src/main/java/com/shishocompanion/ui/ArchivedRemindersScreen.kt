@@ -37,7 +37,7 @@ fun ArchivedRemindersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (inSelectionMode) "${selectedReminderIds.size} selected" else "Archived Reminders") },
+                title = { Text(if (inSelectionMode) stringResource(R.string.selected_count_format, selectedReminderIds.size) else stringResource(R.string.archived_reminders)) },
                 navigationIcon = {
                     if (inSelectionMode) {
                         IconButton(onClick = onClearSelection) {
@@ -45,7 +45,7 @@ fun ArchivedRemindersScreen(
                         }
                     } else {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 },
@@ -75,7 +75,7 @@ fun ArchivedRemindersScreen(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (filteredReminders.isEmpty()) {
                 Text(
-                    text = "No archived reminders.",
+                    text = stringResource(R.string.no_archived_reminders),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.align(Alignment.Center)
@@ -86,7 +86,7 @@ fun ArchivedRemindersScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(filteredReminders) { reminder ->
+                    items(filteredReminders, key = { it.id }) { reminder ->
                         val isSelected = selectedReminderIds.contains(reminder.id)
                         ReminderCard(
                             reminder = reminder, 

@@ -27,7 +27,8 @@ fun ReminderDetailScreen(
     onNavigateBack: () -> Unit,
     isSplitScreen: Boolean = false,
     use24HourTime: Boolean = false,
-    dateFormatPreference: String = "SYSTEM"
+    dateFormatPreference: String = "SYSTEM",
+    linkedBookTitle: String? = null
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -66,6 +67,13 @@ fun ReminderDetailScreen(
         ) {
             Text(stringResource(R.string.reminder), style = MaterialTheme.typography.labelSmall)
             Text(item.reminderText, style = MaterialTheme.typography.bodyLarge)
+            if (!linkedBookTitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                SuggestionChip(
+                    onClick = {},
+                    label = { Text("\uD83D\uDCDA $linkedBookTitle") }
+                )
+            }
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(stringResource(R.string.remind_at), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -74,7 +82,7 @@ fun ReminderDetailScreen(
             Spacer(modifier = Modifier.height(16.dp))
             
             Text(stringResource(R.string.status), style = MaterialTheme.typography.labelSmall)
-            Text(if (item.isSent) "Sent" else "Pending", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(if (item.isSent) R.string.sent else R.string.pending), style = MaterialTheme.typography.bodyMedium)
         }
     }
 

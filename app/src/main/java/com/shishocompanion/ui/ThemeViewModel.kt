@@ -2,7 +2,7 @@ package com.shishocompanion.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.shishocompanion.data.ReadingListRepository
+import com.shishocompanion.data.AuthRepository
 import com.shishocompanion.data.UserPreferencesRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,7 +13,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ThemeViewModel @Inject constructor(
-    private val repository: ReadingListRepository,
+    private val authRepository: AuthRepository,
     private val userPrefs: UserPreferencesRepository
 ) : ViewModel() {
 
@@ -38,21 +38,23 @@ class ThemeViewModel @Inject constructor(
     val splitScreenPreference: StateFlow<Boolean> = userPrefs.splitScreenEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val swipeActionPreference: StateFlow<String> = userPrefs.swipeAction
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "DELETE")
+
+    private suspend fun updateRemotePreferences(
+        transform: (com.shishocompanion.data.Preferences) -> com.shishocompanion.data.Preferences
+    ) {
+        if (authRepository.authToken.isNullOrEmpty()) return
+        val me = authRepository.getMe().getOrNull() ?: return
+        val basePrefs = me.preferences ?: com.shishocompanion.data.Preferences()
+        authRepository.updatePreferences(transform(basePrefs))
+    }
+
     fun setThemePreference(theme: String) {
         viewModelScope.launch {
             userPrefs.setThemePreference(theme)
-            if (!repository.authToken.isNullOrEmpty()) {
-                val currentMeResult = repository.getMe()
-                if (currentMeResult.isSuccess) {
-                    val me = currentMeResult.getOrNull()
-                    val currentCompanion = me?.preferences?.companion ?: com.shishocompanion.data.CompanionPreferences()
-                    val newPrefs = me?.preferences?.copy(
-                        companion = currentCompanion.copy(theme = theme)
-                    ) ?: com.shishocompanion.data.Preferences(
-                        companion = currentCompanion.copy(theme = theme)
-                    )
-                    repository.updatePreferences(newPrefs)
-                }
+            updateRemotePreferences { prefs ->
+                prefs.copy(companion = prefs.companion.copy(theme = theme))
             }
         }
     }
@@ -60,18 +62,8 @@ class ThemeViewModel @Inject constructor(
     fun setTimeFormatPreference(format: String) {
         viewModelScope.launch {
             userPrefs.setTimeFormatPreference(format)
-            if (!repository.authToken.isNullOrEmpty()) {
-                val currentMeResult = repository.getMe()
-                if (currentMeResult.isSuccess) {
-                    val me = currentMeResult.getOrNull()
-                    val currentGeneral = me?.preferences?.general ?: com.shishocompanion.data.GeneralPreferences()
-                    val newPrefs = me?.preferences?.copy(
-                        general = currentGeneral.copy(timeFormat = format)
-                    ) ?: com.shishocompanion.data.Preferences(
-                        general = com.shishocompanion.data.GeneralPreferences(timeFormat = format)
-                    )
-                    repository.updatePreferences(newPrefs)
-                }
+            updateRemotePreferences { prefs ->
+                prefs.copy(general = prefs.general.copy(timeFormat = format))
             }
         }
     }
@@ -79,18 +71,8 @@ class ThemeViewModel @Inject constructor(
     fun setDateFormatPreference(format: String) {
         viewModelScope.launch {
             userPrefs.setDateFormatPreference(format)
-            if (!repository.authToken.isNullOrEmpty()) {
-                val currentMeResult = repository.getMe()
-                if (currentMeResult.isSuccess) {
-                    val me = currentMeResult.getOrNull()
-                    val currentGeneral = me?.preferences?.general ?: com.shishocompanion.data.GeneralPreferences()
-                    val newPrefs = me?.preferences?.copy(
-                        general = currentGeneral.copy(dateFormat = format)
-                    ) ?: com.shishocompanion.data.Preferences(
-                        general = com.shishocompanion.data.GeneralPreferences(dateFormat = format)
-                    )
-                    repository.updatePreferences(newPrefs)
-                }
+            updateRemotePreferences { prefs ->
+                prefs.copy(general = prefs.general.copy(dateFormat = format))
             }
         }
     }
@@ -98,18 +80,8 @@ class ThemeViewModel @Inject constructor(
     fun setLanguagePreference(lang: String) {
         viewModelScope.launch {
             userPrefs.setLanguagePreference(lang)
-            if (!repository.authToken.isNullOrEmpty()) {
-                val currentMeResult = repository.getMe()
-                if (currentMeResult.isSuccess) {
-                    val me = currentMeResult.getOrNull()
-                    val currentGeneral = me?.preferences?.general ?: com.shishocompanion.data.GeneralPreferences()
-                    val newPrefs = me?.preferences?.copy(
-                        general = currentGeneral.copy(language = lang)
-                    ) ?: com.shishocompanion.data.Preferences(
-                        general = com.shishocompanion.data.GeneralPreferences(language = lang)
-                    )
-                    repository.updatePreferences(newPrefs)
-                }
+            updateRemotePreferences { prefs ->
+                prefs.copy(general = prefs.general.copy(language = lang))
             }
         }
     }
@@ -117,18 +89,8 @@ class ThemeViewModel @Inject constructor(
     fun setSplitScreenPreference(enabled: Boolean) {
         viewModelScope.launch {
             userPrefs.setSplitScreenEnabled(enabled)
-            if (!repository.authToken.isNullOrEmpty()) {
-                val currentMeResult = repository.getMe()
-                if (currentMeResult.isSuccess) {
-                    val me = currentMeResult.getOrNull()
-                    val currentCompanion = me?.preferences?.companion ?: com.shishocompanion.data.CompanionPreferences()
-                    val newPrefs = me?.preferences?.copy(
-                        companion = currentCompanion.copy(splitScreen = enabled)
-                    ) ?: com.shishocompanion.data.Preferences(
-                        companion = currentCompanion.copy(splitScreen = enabled)
-                    )
-                    repository.updatePreferences(newPrefs)
-                }
+            updateRemotePreferences { prefs ->
+                prefs.copy(companion = prefs.companion.copy(splitScreen = enabled))
             }
         }
     }
@@ -136,18 +98,8 @@ class ThemeViewModel @Inject constructor(
     fun setSendRemindersToDiscordPreference(send: Boolean) {
         viewModelScope.launch {
             userPrefs.setSendRemindersToDiscord(send)
-            if (!repository.authToken.isNullOrEmpty()) {
-                val currentMeResult = repository.getMe()
-                if (currentMeResult.isSuccess) {
-                    val me = currentMeResult.getOrNull()
-                    val currentGeneral = me?.preferences?.general ?: com.shishocompanion.data.GeneralPreferences()
-                    val newPrefs = me?.preferences?.copy(
-                        general = currentGeneral.copy(sendRemindersToDiscord = send)
-                    ) ?: com.shishocompanion.data.Preferences(
-                        general = com.shishocompanion.data.GeneralPreferences(sendRemindersToDiscord = send)
-                    )
-                    repository.updatePreferences(newPrefs)
-                }
+            updateRemotePreferences { prefs ->
+                prefs.copy(general = prefs.general.copy(sendRemindersToDiscord = send))
             }
         }
     }

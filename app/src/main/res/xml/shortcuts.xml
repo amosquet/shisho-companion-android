@@ -12,4 +12,26 @@
             android:targetClass="com.shishocompanion.MainActivity" />
         <categories android:name="android.shortcut.conversation" />
     </shortcut>
+    <shortcut
+        android:shortcutId="add_book"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add_book"
+        android:shortcutShortLabel="@string/add_book_shortcut_short"
+        android:shortcutLongLabel="@string/add_book_shortcut_long">
+        <intent
+            android:action="com.shishocompanion.ADD_BOOK"
+            android:targetPackage="com.shishocompanion"
+            android:targetClass="com.shishocompanion.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="add_reminder"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add_reminder"
+        android:shortcutShortLabel="@string/add_reminder_shortcut_short"
+        android:shortcutLongLabel="@string/add_reminder_shortcut_long">
+        <intent
+            android:action="com.shishocompanion.ADD_REMINDER"
+            android:targetPackage="com.shishocompanion"
+            android:targetClass="com.shishocompanion.MainActivity" />
+    </shortcut>
 </shortcuts>

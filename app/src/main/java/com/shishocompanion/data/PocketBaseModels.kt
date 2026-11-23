@@ -31,7 +31,10 @@ data class ReadingListItem(
     val collectionName: String = "",
     val created: String = "",
     val updated: String = "",
-    val completed: String = ""
+    val completed: String = "",
+    val currentPage: Int = 0,
+    val totalPages: Int = 0,
+    val rating: Int = 0
 )
 
 @Serializable
@@ -43,10 +46,14 @@ data class CreateReadingListItemRequest(
     val imageUrl: String = "",
     val author: String = "",
     val status: String = "",
+    val publishDate: String = "",
     val isbn: String = "",
     val startDate: String = "",
     val endDate: String = "",
     val completed: String = "",
+    val currentPage: Int = 0,
+    val totalPages: Int = 0,
+    val rating: Int = 0,
     @kotlinx.serialization.Transient var coverBytes: ByteArray? = null,
     @kotlinx.serialization.Transient var coverFilename: String? = null
 )
@@ -89,7 +96,8 @@ data class NoteItem(
     val attachment: List<String> = emptyList(), // spelling matches db
     val created: String = "",
     val updated: String = "",
-    val archived: Boolean = false
+    val archived: Boolean = false,
+    val book: String = ""
 )
 
 @Serializable
@@ -98,7 +106,8 @@ data class CreateNoteRequest(
     val title: String,
     val text: String,
     val attachment: List<String> = emptyList(),
-    val archived: Boolean
+    val archived: Boolean,
+    val book: String = ""
 )
 
 @Serializable
@@ -109,7 +118,8 @@ data class ReminderItem(
     @SerialName("remind_at") val remindAt: String = "",
     @SerialName("is_sent") val isSent: Boolean = false,
     val created: String = "",
-    val updated: String = ""
+    val updated: String = "",
+    val book: String = ""
 )
 
 @Serializable
@@ -117,7 +127,8 @@ data class CreateReminderRequest(
     @SerialName("owner") val owner: String = "",
     @SerialName("reminder_text") val reminderText: String,
     @SerialName("remind_at") val remindAt: String,
-    @SerialName("is_sent") val isSent: Boolean
+    @SerialName("is_sent") val isSent: Boolean,
+    val book: String = ""
 )
 
 @Serializable

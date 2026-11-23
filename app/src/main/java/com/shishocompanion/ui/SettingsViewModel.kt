@@ -2,7 +2,7 @@ package com.shishocompanion.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.shishocompanion.data.ReadingListRepository
+import com.shishocompanion.data.AuthRepository
 import com.shishocompanion.data.UserPreferencesRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,7 +15,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val repository: ReadingListRepository,
+    private val authRepository: AuthRepository,
     private val userPrefs: UserPreferencesRepository
 ) : ViewModel() {
 
@@ -33,7 +33,7 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val me = repository.getMe()
+            val me = authRepository.getMe()
             if (me.isSuccess) {
                 val fetchedDiscordId = me.getOrNull()?.discordId ?: ""
                 userPrefs.setDiscordDisplayId(fetchedDiscordId)
@@ -44,7 +44,7 @@ class SettingsViewModel @Inject constructor(
     fun requestDiscordPin(discordId: String) {
         viewModelScope.launch {
             _uiState.value = DiscordLinkUiState.Loading
-            val result = repository.requestDiscordPin(discordId)
+            val result = authRepository.requestDiscordPin(discordId)
             if (result.isSuccess) {
                 _uiState.value = DiscordLinkUiState.PinRequested(discordId)
             } else {
@@ -56,7 +56,7 @@ class SettingsViewModel @Inject constructor(
     fun verifyDiscordPin(discordId: String, pin: String) {
         viewModelScope.launch {
             _uiState.value = DiscordLinkUiState.PinRequested(discordId, isVerifying = true)
-            val result = repository.linkDiscord(discordId, pin)
+            val result = authRepository.linkDiscord(discordId, pin)
             if (result.isSuccess) {
                 userPrefs.setDiscordDisplayId(discordId)
                 _uiState.value = DiscordLinkUiState.Success
@@ -73,7 +73,7 @@ class SettingsViewModel @Inject constructor(
     fun unlinkDiscord() {
         viewModelScope.launch {
             _uiState.value = DiscordLinkUiState.Loading
-            val result = repository.unlinkDiscord()
+            val result = authRepository.unlinkDiscord()
             if (result.isSuccess) {
                 userPrefs.setDiscordDisplayId("")
                 _uiState.value = DiscordLinkUiState.Idle

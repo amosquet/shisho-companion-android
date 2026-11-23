@@ -39,8 +39,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return AppDatabase.getDatabase(context)
+    fun provideAppDatabase(
+        @ApplicationContext context: Context,
+        sharedPrefs: SharedPreferences
+    ): AppDatabase {
+        return AppDatabase.getDatabase(context, sharedPrefs)
     }
 
     @Provides
@@ -61,19 +64,34 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideReadingListRepository(httpClient: HttpClient, database: AppDatabase, @ApplicationContext context: Context): ReadingListRepository {
-        return ReadingListRepository(httpClient, database.readingListDao(), context)
+    fun provideReadingListRepository(
+        httpClient: HttpClient,
+        database: AppDatabase,
+        @ApplicationContext context: Context,
+        sharedPrefs: SharedPreferences
+    ): ReadingListRepository {
+        return ReadingListRepository(httpClient, database.readingListDao(), context, sharedPrefs = sharedPrefs)
     }
 
     @Provides
     @Singleton
-    fun provideNoteRepository(httpClient: HttpClient, database: AppDatabase, @ApplicationContext context: Context): NoteRepository {
-        return NoteRepository(httpClient, database.noteDao(), context)
+    fun provideNoteRepository(
+        httpClient: HttpClient,
+        database: AppDatabase,
+        @ApplicationContext context: Context,
+        sharedPrefs: SharedPreferences
+    ): NoteRepository {
+        return NoteRepository(httpClient, database.noteDao(), context, sharedPrefs = sharedPrefs)
     }
 
     @Provides
     @Singleton
-    fun provideReminderRepository(httpClient: HttpClient, database: AppDatabase, @ApplicationContext context: Context): ReminderRepository {
-        return ReminderRepository(httpClient, database.reminderDao(), context)
+    fun provideReminderRepository(
+        httpClient: HttpClient,
+        database: AppDatabase,
+        @ApplicationContext context: Context,
+        sharedPrefs: SharedPreferences
+    ): ReminderRepository {
+        return ReminderRepository(httpClient, database.reminderDao(), context, sharedPrefs = sharedPrefs)
     }
 }

@@ -1,13 +1,19 @@
 package com.shishocompanion.notifications
 
 import android.content.Context
+import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.shishocompanion.data.AppDatabase
+import com.shishocompanion.data.SyncManager
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedInject
 
-class ReminderWorker(
-    appContext: Context,
-    workerParams: WorkerParameters
+@HiltWorker
+class ReminderWorker @AssistedInject constructor(
+    @Assisted appContext: Context,
+    @Assisted workerParams: WorkerParameters,
+    private val database: AppDatabase
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -18,11 +24,11 @@ class ReminderWorker(
         NotificationHelper.showNotification(applicationContext, reminderId, text)
 
         try {
-            val db = AppDatabase.getDatabase(applicationContext)
-            val dao = db.reminderDao()
+            val dao = database.reminderDao()
             val reminder = dao.getReminderById(reminderId)
             if (reminder != null) {
                 dao.updateReminder(reminder.copy(isSent = true, isPendingSync = true))
+                SyncManager.scheduleSync(applicationContext)
             }
         } catch (e: Exception) {
             e.printStackTrace()

@@ -30,10 +30,12 @@ fun NoteEditor(
     
     // We want to track if this is the first load
     var isInitialized by remember { mutableStateOf(false) }
+    var lastEmittedMarkdown by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(text) {
-        if (!isInitialized) {
+        if (!isInitialized || (text != lastEmittedMarkdown && text != richTextState.toMarkdown())) {
             richTextState.setMarkdown(text)
+            lastEmittedMarkdown = text
             isInitialized = true
         }
     }
@@ -46,6 +48,7 @@ fun NoteEditor(
             // Avoid calling onTextChange if it's strictly equal to what was passed in,
             // to prevent unnecessary loop cycles.
             if (newMarkdown != text) {
+                lastEmittedMarkdown = newMarkdown
                 onTextChange(newMarkdown)
             }
         }

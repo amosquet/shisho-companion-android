@@ -14,7 +14,7 @@ import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import java.security.SecureRandom
 import android.util.Base64
 
-@Database(entities = [ReadingListEntity::class, NoteEntity::class, ReminderEntity::class], version = 12, exportSchema = false)
+@Database(entities = [ReadingListEntity::class, NoteEntity::class, ReminderEntity::class], version = 14, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun readingListDao(): ReadingListDao
     abstract fun noteDao(): NoteDao
@@ -54,19 +54,39 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        fun getDatabase(context: Context): AppDatabase {
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE reading_list ADD COLUMN currentPage INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE reading_list ADD COLUMN totalPages INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE reading_list ADD COLUMN rating INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE notes ADD COLUMN book TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE reminders ADD COLUMN book TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE reading_list ADD COLUMN isPendingDelete INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE notes ADD COLUMN isPendingDelete INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE reminders ADD COLUMN isPendingDelete INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        fun getDatabase(context: Context, providedPrefs: android.content.SharedPreferences? = null): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val masterKey = MasterKey.Builder(context.applicationContext)
-                    .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                    .build()
-                    
-                val sharedPrefs = EncryptedSharedPreferences.create(
-                    context.applicationContext,
-                    "secret_shared_prefs",
-                    masterKey,
-                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-                )
+                val sharedPrefs = providedPrefs ?: run {
+                    val masterKey = MasterKey.Builder(context.applicationContext)
+                        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                        .build()
+
+                    EncryptedSharedPreferences.create(
+                        context.applicationContext,
+                        "secret_shared_prefs",
+                        masterKey,
+                        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                    )
+                }
                 
                 var passphrase = sharedPrefs.getString("db_passphrase", null)
                 if (passphrase == null) {
@@ -115,7 +135,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "reading_list_database"
                 )
                 .openHelperFactory(factory)
-                .addMigrations(MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                .addMigrations(MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
                 .fallbackToDestructiveMigration(true)
                 .build()
                 INSTANCE = instance

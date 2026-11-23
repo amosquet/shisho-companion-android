@@ -68,6 +68,30 @@ class ReadingListViewModel @Inject constructor(
         }
     }
 
+    fun restoreItem(item: ReadingListItem) {
+        viewModelScope.launch {
+            repository.addItem(
+                CreateReadingListItemRequest(
+                    owner = item.owner,
+                    title = item.title,
+                    url = item.url,
+                    description = item.description,
+                    imageUrl = item.imageUrl,
+                    author = item.author,
+                    status = item.status,
+                    publishDate = item.publishDate,
+                    isbn = item.isbn,
+                    startDate = item.startDate,
+                    endDate = item.endDate,
+                    completed = item.completed,
+                    currentPage = item.currentPage,
+                    totalPages = item.totalPages,
+                    rating = item.rating
+                )
+            )
+        }
+    }
+
     fun getItemById(id: String): ReadingListItem? {
         val currentState = uiState.value
         if (currentState is ReadingListUiState.Success) {
@@ -84,12 +108,15 @@ class ReadingListViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             val apiKey = userPrefs.googleBooksApiKey.first()
-            if (apiKey.isBlank()) {
-                onResult(BookSearchResult.NoApiKey)
-                return@launch
+            val googleResults = if (apiKey.isNotBlank()) {
+                repository.searchGoogleBooks(title = title, author = author, isbn = isbn, apiKey = apiKey)
+            } else {
+                emptyList()
             }
-            val result = repository.searchGoogleBooks(title = title, author = author, isbn = isbn, apiKey = apiKey)
-            onResult(BookSearchResult.Success(result))
+            val finalResults = googleResults.ifEmpty {
+                repository.searchOpenLibrary(title = title, author = author, isbn = isbn)
+            }
+            onResult(BookSearchResult.Success(finalResults))
         }
     }
 }

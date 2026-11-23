@@ -38,7 +38,7 @@ fun ArchivedNotesScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (inSelectionMode) "${selectedNoteIds.size} selected" else "Archived Notes") },
+                title = { Text(if (inSelectionMode) stringResource(R.string.selected_count_format, selectedNoteIds.size) else stringResource(R.string.archived_notes)) },
                 navigationIcon = {
                     if (inSelectionMode) {
                         IconButton(onClick = onClearSelection) {
@@ -46,7 +46,7 @@ fun ArchivedNotesScreen(
                         }
                     } else {
                         IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     }
                 },
@@ -89,7 +89,7 @@ fun ArchivedNotesScreen(
                     
                     if (filteredNotes.isEmpty()) {
                         Text(
-                            text = "No archived notes.",
+                            text = stringResource(R.string.no_archived_notes),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.align(Alignment.Center)
@@ -100,7 +100,7 @@ fun ArchivedNotesScreen(
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            items(filteredNotes) { note ->
+                            items(filteredNotes, key = { it.id }) { note ->
                                 NoteItemCard(
                                     item = note, 
                                     isSelected = selectedNoteIds.contains(note.id),

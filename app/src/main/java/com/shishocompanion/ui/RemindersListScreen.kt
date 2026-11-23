@@ -33,6 +33,8 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,8 +53,13 @@ fun RemindersListScreen(
     onDeleteSelected: () -> Unit,
     onDeleteReminder: (String) -> Unit,
     onArchiveReminder: (String) -> Unit,
-    swipeActionPreference: String = "DELETE"
+    onRestoreReminder: ((ReminderItem) -> Unit)? = null,
+    bookTitleLookup: Map<String, String> = emptyMap(),
+    swipeActionPreference: String = "DELETE",
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() }
 ) {
+    val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
     val inSelectionMode = selectedReminderIds.isNotEmpty()
     
@@ -67,9 +74,10 @@ fun RemindersListScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(if (inSelectionMode) "${selectedReminderIds.size} selected" else stringResource(R.string.reminders)) },
+                title = { Text(if (inSelectionMode) stringResource(R.string.selected_count_format, selectedReminderIds.size) else stringResource(R.string.reminders)) },
                 navigationIcon = {
                     if (inSelectionMode) {
                         IconButton(onClick = onClearSelection) {
@@ -122,7 +130,7 @@ fun RemindersListScreen(
             ) {
                 if (filteredReminders.isEmpty() && !uiState.isLoading) {
                     Text(
-                        text = "No pending reminders.",
+                        text = stringResource(R.string.no_pending_reminders),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.secondary,
                         modifier = Modifier.align(Alignment.Center)
@@ -133,18 +141,45 @@ fun RemindersListScreen(
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        items(filteredReminders) { reminder ->
+                        items(filteredReminders, key = { it.id }) { reminder ->
                             val isSelected = selectedReminderIds.contains(reminder.id)
                             CustomSwipeToDismissBox(
                                 swipeActionPreference = swipeActionPreference,
-                                onDismiss = { onDeleteReminder(reminder.id) },
-                                onArchive = { onArchiveReminder(reminder.id) }
+                                onDismiss = {
+                                    onDeleteReminder(reminder.id)
+                                    if (onRestoreReminder != null) {
+                                        scope.launch {
+                                            val res = snackbarHostState.showSnackbar(
+                                                message = context.getString(R.string.deleted_reminder_message),
+                                                actionLabel = context.getString(R.string.undo),
+                                                duration = SnackbarDuration.Short
+                                            )
+                                            if (res == SnackbarResult.ActionPerformed) {
+                                                onRestoreReminder(reminder)
+                                            }
+                                        }
+                                    }
+                                },
+                                onArchive = {
+                                    onArchiveReminder(reminder.id)
+                                    scope.launch {
+                                        val res = snackbarHostState.showSnackbar(
+                                            message = context.getString(R.string.archived_reminder_message),
+                                            actionLabel = context.getString(R.string.undo),
+                                            duration = SnackbarDuration.Short
+                                        )
+                                        if (res == SnackbarResult.ActionPerformed) {
+                                            onArchiveReminder(reminder.id)
+                                        }
+                                    }
+                                }
                             ) {
                                 ReminderCard(
                                     reminder = reminder, 
                                     use24HourTime = use24HourTime, 
                                     dateFormatPreference = dateFormatPreference,
                                     isSelected = isSelected,
+                                    bookTitle = bookTitleLookup[reminder.book],
                                     onClick = { 
                                         if (inSelectionMode) onToggleSelection(reminder.id)
                                         else onItemClick(reminder.id)
@@ -184,7 +219,15 @@ fun RemindersListScreen(
 }
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ReminderCard(reminder: ReminderItem, use24HourTime: Boolean, dateFormatPreference: String, isSelected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
+fun ReminderCard(
+    reminder: ReminderItem,
+    use24HourTime: Boolean,
+    dateFormatPreference: String,
+    isSelected: Boolean,
+    bookTitle: String? = null,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -210,17 +253,27 @@ fun ReminderCard(reminder: ReminderItem, use24HourTime: Boolean, dateFormatPrefe
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+            if (!bookTitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "\uD83D\uDCDA $bookTitle",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             if (reminder.remindAt.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Remind at: ${formatReminderTime(reminder.remindAt, use24HourTime, dateFormatPreference)}",
+                    text = stringResource(R.string.remind_at_format, formatReminderTime(reminder.remindAt, use24HourTime, dateFormatPreference)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (reminder.isSent) "Status: Sent" else "Status: Pending",
+                text = stringResource(if (reminder.isSent) R.string.status_sent_label else R.string.status_pending_label),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (reminder.isSent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )

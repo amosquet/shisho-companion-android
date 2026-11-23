@@ -18,10 +18,10 @@ object Reminders
 object Add
 
 @Serializable
-object AddNote
+data class AddNote(val bookId: String = "")
 
 @Serializable
-object AddReminder
+data class AddReminder(val bookId: String = "", val defaultText: String = "")
 
 
 

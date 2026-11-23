@@ -14,5 +14,7 @@ data class NoteEntity(
     val created: String,
     val updated: String,
     val isPendingSync: Boolean = false,
-    val archived: Boolean = false
+    val archived: Boolean = false,
+    val book: String = "",
+    val isPendingDelete: Boolean = false
 )

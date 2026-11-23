@@ -49,11 +49,20 @@ object NotificationHelper {
             .addTag(reminder.id)
             .build()
 
-        WorkManager.getInstance(context).enqueue(workRequest)
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "reminder_${reminder.id}",
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            workRequest
+        )
     }
 
     fun cancelAlarm(context: Context, reminderId: String) {
+        WorkManager.getInstance(context).cancelUniqueWork("reminder_$reminderId")
         WorkManager.getInstance(context).cancelAllWorkByTag(reminderId)
+    }
+
+    fun cancelAllAlarms(context: Context) {
+        WorkManager.getInstance(context).cancelAllWork()
     }
 
     fun showNotification(context: Context, reminderId: String, text: String) {
